@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
+import '../categoray/categoray_screen.dart';
+import '../disease/disease_details_screen.dart';
+
+final List<List<String>> items = [
+  ["نباتات ورقية", "assets/images/plant_leaf.jpg"],
+  ["زهور", "assets/images/flowers.jpg"],
+  ["فواكه", "assets/images/fruite.jpg"],
+  ["خضروات", "assets/images/vegetables.jpg"],
+  ["حبوب", "assets/images/fruite.jpg"],
+  ["أشجار", "assets/images/fruite.jpg"],
+];
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -83,19 +94,24 @@ class HomeScreen extends StatelessWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                itemCount: 6,
+                itemCount: items.length,
                 itemBuilder: (context, index) {
-                  final items = [
-                    ["نباتات ورقية", "assets/images/plant_leaf.jpg"],
-                    ["زهور", "assets/images/flowers.jpg"],
-                    ["فواكه", "assets/images/fruite.jpg"],
-                    ["خضروات", "assets/images/vegetables.jpg"],
-                    ["خضروات", "assets/images/vegetables.jpg"],
-                    ["خضروات", "assets/images/vegetables.jpg"],
-                  ];
-                  return _CategoryItem(items[index][0], items[index][1]);
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryScreen(
+                            categoryTitle: items[index][0],
+                            categoryImage: items[index][1],
+                          ),
+                        ),
+                      );
+                    },
+                    child: _CategoryItem(items[index][0], items[index][1]),
+                  );
                 },
-                separatorBuilder: (_, __) => const SizedBox(width: 4),
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
               ),
             ),
 
@@ -178,10 +194,27 @@ class HomeScreen extends StatelessWidget {
               crossAxisSpacing: 12,
               childAspectRatio: 0.9,
               children: const [
-                _ProblemCard("اصفرار الأوراق", "assets/images/yellow.jpg"),
-                _ProblemCard("احتراق أطراف الأوراق", "assets/images/brown.jpg"),
-                _ProblemCard("بقع على الأوراق", "assets/images/leaf_spot.jpg"),
-                _ProblemCard("ذبول الأوراق", "assets/images/wilting.jpg"),
+                _ProblemCard(
+                  "اصفرار الأوراق",
+                  "assets/images/yellow.jpg",
+                  "نبات الياسمين",
+                ),
+                _ProblemCard(
+                  "احتراق الأطراف",
+                  "assets/images/brown.jpg",
+                  "نبات السجاد",
+                ),
+                _ProblemCard(
+                  'بقع على الاوراق',
+                  "assets/images/leaf_spot.jpg",
+                  "نبات الورود",
+                ),
+                _ProblemCard(
+                  'ذبول الاوراق',
+                  "assets/images/wilting.jpg",
+                  "نبات الزيتون",
+                ),
+                // ... البقية
               ],
             ),
             SizedBox(height: 50),
@@ -223,8 +256,9 @@ class _CategoryItem extends StatelessWidget {
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
+  final String plantName; // اسم النبات الذي سيمرر للشاشة التالية فقط
 
-  const _ProblemCard(this.title, this.image);
+  const _ProblemCard(this.title, this.image, this.plantName);
 
   @override
   Widget build(BuildContext context) {
@@ -234,37 +268,60 @@ class _ProblemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(30), // 0–255
+            color: Colors.black.withAlpha(30),
             blurRadius: 12,
             spreadRadius: 1,
             offset: const Offset(0, 0),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.asset(
-              image,
-              height: 145,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.titleTheme,
+      child: Material(
+        // أضفنا Material هنا ليعمل تأثير InkWell بشكل صحيح
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          // داخل ويدجت _ProblemCard في خاصية onTap:
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiseaseDetailsScreen(
+                  diseseTitle: title, // يمرر لـ diseseTitle
+                  diseaseImage: image, // يمرر لـ diseaseImage
+                  plantName: plantName, // يمرر لـ plantName
+                ),
               ),
-            ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+                child: Image.asset(
+                  image,
+                  height: 145,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.titleTheme,
+                  ),
+                ),
+              ),
+              // اسم النبات موجود في الكود لكن لا يوجد ويدجت Text تعرضه هنا
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
