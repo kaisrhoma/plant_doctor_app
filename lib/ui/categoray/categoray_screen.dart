@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:plant_doctor_app/ui/widgets/curved_header_image.dart';
 import '../plant/plant_details_screen.dart';
+import '../../core/app_theme.dart';
 
 // تحديث القائمة لتشمل 3 عناصر لكل نبات (الاسم، النوع، مسار الصورة)
 final List<Map<String, String>> plantList = [
@@ -49,7 +50,7 @@ class CategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           ListView(
@@ -63,29 +64,49 @@ class CategoryScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
                   categoryTitle,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green[900],
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
 
+              const SizedBox(height: 20),
+
               // حقل البحث
+              // 🔍 البحث
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'ابحث عن نباتك',
-                    prefixIcon: const Icon(Icons.search),
+                    hintText: "ابحث عن نباتك",
+                    hintStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 20,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(
+                        color: Colors.grey.withAlpha(100), // ← خفيف
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: Colors.grey.withAlpha(100),
+                        width: 1,
+                      ),
                     ),
                   ),
                 ),
               ),
+
+              const SizedBox(height: 20),
 
               // قائمة النباتات باستخدام الـ Map الجديدة
               ListView.builder(
@@ -115,6 +136,14 @@ class CategoryScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 20),
+              Text(
+                'لا توجد نباتات أخرى في هذه الفئة.',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              ),
+              const SizedBox(height: 100),
             ],
           ),
 
@@ -166,9 +195,10 @@ class PlantCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withAlpha(30),
+            blurRadius: 12,
+            spreadRadius: 1,
+            offset: const Offset(0, 0),
           ),
         ],
       ),
@@ -179,9 +209,9 @@ class PlantCard extends StatelessWidget {
           children: [
             // صورة النبات بحواف دائرية بالكامل داخل البطاقة
             Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(7.0),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
                   imagePath,
                   width: 90,
@@ -200,19 +230,9 @@ class PlantCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Color(0xFF2D3142),
-                      ),
-                    ),
+                    Text(name, style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 4),
-                    Text(
-                      species,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
+                    Text(species, style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 10),
                     // أيقونات الحالة
                     Row(

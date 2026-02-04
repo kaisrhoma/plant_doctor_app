@@ -22,9 +22,9 @@ class HomeScreen extends StatelessWidget {
         centerTitle: false,
         title: Padding(
           padding: const EdgeInsets.only(right: 2),
-          child: const Text(
+          child: Text(
             "ابحث عن حلول لصحة نباتاتك",
-            style: TextStyle(fontSize: 18, color: AppTheme.titleTheme),
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
         actions: [
@@ -52,7 +52,8 @@ class HomeScreen extends StatelessWidget {
             TextField(
               decoration: InputDecoration(
                 hintText: "بحث",
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
@@ -60,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                   horizontal: 20,
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide(
                     color: Colors.grey.withAlpha(100), // ← خفيف
                     width: 1,
@@ -79,14 +80,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
 
             // 📂 التصنيفات
-            const Text(
-              "التصنيفات",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.titleTheme,
-              ),
-            ),
+            Text("التصنيفات", style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 10),
 
             SizedBox(
@@ -155,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                         const Text(
                           "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Color.fromARGB(255, 15, 75, 17),
                           ),
                         ),
@@ -176,14 +170,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 15),
 
             // ⚠️ المشاكل الشائعة
-            const Text(
-              "مشاكل شائعة",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.titleTheme,
-              ),
-            ),
+            Text("مشاكل شائعة", style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 10),
 
             GridView.count(
@@ -264,7 +251,7 @@ class _ProblemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
+        color: AppTheme.backraoundCard,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

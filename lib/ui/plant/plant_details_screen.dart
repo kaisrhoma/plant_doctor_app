@@ -24,14 +24,11 @@ class PlantDetailsScreen extends StatelessWidget {
           SliverAppBar(
             expandedHeight: 350,
             pinned: true,
-            backgroundColor: Colors.green[800],
+            backgroundColor: AppTheme.primaryGreen,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: imagePath,
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(32),
-                  ),
                   child: Image.asset(
                     imagePath,
                     width: double.infinity,
@@ -62,16 +59,16 @@ class PlantDetailsScreen extends StatelessWidget {
                   // --- العنوان أولاً ---
                   Text(
                     name,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: AppTheme.titleTheme,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     species,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.green[700]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.accentGreen,
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -109,32 +106,35 @@ class PlantDetailsScreen extends StatelessWidget {
 
                   // --- ثم المعلومات التفصيلية والانتشار ---
                   _buildInfoSection(
+                    context,
                     "العائلة النباتية",
                     "الفصيلة البقولية - Fabaceae",
                   ),
                   _buildInfoSection(
+                    context,
                     "الانتشار في ليبيا",
                     "ينتشر بكثرة في مناطق الجبل الأخضر، ترهونة، وضواحي طرابلس.",
                   ),
                   _buildInfoSection(
+                    context,
                     "طرق العناية",
                     "يتحمل الجفاف بشكل جيد، يفضل الري العميق مرة أسبوعياً في الصيف.",
                   ),
 
                   const SizedBox(height: 24),
 
-                  const Text(
+                  Text(
                     "عن النبات",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.primaryGreen,
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     "هذا النبات يعتبر من الأصناف المتأقلمة مع المناخ الليبي، ويتميز بقدرته على تحمل تقلبات درجات الحرارة بين الصيف والشتاء.",
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.6,
-                      color: Colors.black87,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppTheme.titleTheme),
                   ),
 
                   const SizedBox(height: 120), // مساحة للزر السفلي
@@ -156,12 +156,12 @@ class PlantDetailsScreen extends StatelessWidget {
             ),
           );
         },
-        backgroundColor: Colors.redAccent[700],
+        backgroundColor: AppTheme.primaryGreen,
         icon: const Icon(Icons.bug_report, color: Colors.white),
         label: const Text(
           "الأمراض وطرق الوقاية",
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 12,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -171,7 +171,7 @@ class PlantDetailsScreen extends StatelessWidget {
   }
 
   // دالة المعلومات التفصيلية
-  Widget _buildInfoSection(String title, String content) {
+  Widget _buildInfoSection(BuildContext context, String title, String content) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -179,20 +179,16 @@ class PlantDetailsScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppTheme.primaryGreen),
           ),
           const SizedBox(height: 4),
           Text(
             content,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black87,
-              height: 1.4,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.titleTheme),
           ),
           const Divider(height: 20),
         ],

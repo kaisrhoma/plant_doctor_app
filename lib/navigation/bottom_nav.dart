@@ -46,6 +46,14 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         height: 55.0,
+
+        // ✅ الحل: إذا كان الوضع داكن، استخدم لون داكن، وإلا استخدم لونك الفاتح
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E1E1E) // لون رمادي غامق للوضع الليلي
+            : AppTheme.backraoundCard, // لونك الأخضر الفاتح للوضع العادي
+        elevation: 0, // إزالة الخط والظل
+        // surfaceTintColor: Colors
+        //     .transparent, // ضروري جداً في Material 3 لمنع تلوين الشريط تلقائياً
         notchMargin: 8,
         child: SizedBox(
           height: 30, // أقل ارتفاع وأكثر حداثة

@@ -5,15 +5,17 @@ class AppTheme {
   static const Color primaryGreen = Color(0xFF66BB6A);
   static const Color accentGreen = Color(0xFF43A047);
   static const Color titleTheme = Color.fromARGB(255, 15, 75, 17);
-  static const Color backgroundWhite = Color(0xFFF1F8E9);
+  static const Color backraoundCard = Color(0xFFF1F8E9);
+  static const Color headenTow = Color.fromARGB(255, 15, 75, 17);
 
   /// 🌞 Light Theme (كما هو عندك)
   static ThemeData get lightTheme {
     return ThemeData(
+      canvasColor: Colors.transparent,
       fontFamily: 'Cairo',
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color.fromARGB(255, 252, 252, 252),
+      scaffoldBackgroundColor: const Color.fromARGB(255, 255, 255, 255),
       primaryColor: primaryGreen,
 
       colorScheme: ColorScheme.fromSeed(
@@ -24,7 +26,7 @@ class AppTheme {
       ),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: titleTheme),
@@ -46,12 +48,14 @@ class AppTheme {
         bodyLarge: TextStyle(
           fontSize: 18,
           fontFamily: 'Cairo',
-          color: Colors.black87,
+          color: titleTheme,
+          fontWeight: FontWeight.bold,
         ),
         bodyMedium: TextStyle(
-          fontSize: 16,
+          fontSize: 14,
           fontFamily: 'Cairo',
-          color: Colors.black87,
+          fontWeight: FontWeight.bold,
+          color: headenTow,
         ),
         bodySmall: TextStyle(
           fontSize: 12,

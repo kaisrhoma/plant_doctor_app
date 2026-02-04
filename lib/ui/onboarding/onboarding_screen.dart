@@ -29,7 +29,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       titleTop: '',
       titleMain1: '',
       titleMain2: '',
-      subtitle: 'ابدأ مع Doctor Plant واكتشف كيف يمكن تشخيص أمراض النبات بسهولة وإيجاد الحلول المناسبة.',
+      subtitle:
+          'ابدأ مع Doctor Plant واكتشف كيف يمكن تشخيص أمراض النبات بسهولة وإيجاد الحلول المناسبة.',
     ),
     _OnboardPage(
       lottiePath: 'assets/lottie/get_started.json',
@@ -56,13 +57,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _finish();
       return;
     }
-    _controller.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    _controller.nextPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
+      backgroundColor: AppTheme.backraoundCard,
       body: SafeArea(
         child: Column(
           children: [
@@ -88,7 +92,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: _index == i ? 18 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _index == i ? AppTheme.accentGreen : Colors.green.withOpacity(0.25),
+                    color: _index == i
+                        ? AppTheme.accentGreen
+                        : Colors.green.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -108,10 +114,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryGreen,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                         onPressed: _finish,
-                        child: const Text('ابدأ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'ابدأ',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     )
                   : _CircleArrowButton(onTap: _next),
@@ -137,7 +151,11 @@ class _OnboardingItem extends StatelessWidget {
           if (page.titleTop.isNotEmpty)
             Text(
               page.titleTop,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.titleTheme),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.titleTheme,
+              ),
             ),
 
           if (page.titleMain2.isNotEmpty) ...[
@@ -147,12 +165,20 @@ class _OnboardingItem extends StatelessWidget {
               children: [
                 Text(
                   page.titleMain1,
-                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                  style: const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryGreen,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   page.titleMain2,
-                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: AppTheme.titleTheme),
+                  style: const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.titleTheme,
+                  ),
                 ),
               ],
             ),
@@ -172,7 +198,11 @@ class _OnboardingItem extends StatelessWidget {
             Text(
               page.subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, height: 1.5, color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+                color: Colors.grey.shade700,
+              ),
             ),
 
           const SizedBox(height: 40),
@@ -206,7 +236,11 @@ class _CircleArrowButton extends StatelessWidget {
               color: AppTheme.primaryGreen,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_forward, color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.arrow_forward,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
         ),
       ),

@@ -50,9 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -108,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     if (ctx.mounted) Navigator.pop(ctx);
                                   },
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 60),
                               ],
                             );
                           },
@@ -193,10 +191,7 @@ class _CurvedHeaderImage extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: Image.asset(
-          imagePath,
-          fit: BoxFit.cover,
-        ),
+        child: Image.asset(imagePath, fit: BoxFit.cover),
       ),
     );
   }
