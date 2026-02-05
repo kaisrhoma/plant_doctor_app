@@ -21,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _goNext() async {
-    // مدة السبلاش
     await Future.delayed(const Duration(seconds: 2));
 
     final seen = await widget.seenOnboarding();
@@ -36,34 +35,35 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
-@override
-Widget build(BuildContext context) {
-  final theme = Theme.of(context);
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
-  return Scaffold(
-    backgroundColor: theme.scaffoldBackgroundColor, // نفس خلفية التطبيق
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/spl.png',
-            width: 160,
-            height: 160,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Plant Doctor',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/spl.png',
+              width: 160,
+              height: 160,
+              fit: BoxFit.contain,
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Text(
+              'Plant Doctor',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface, // ✅ واضح في الدارك واللايت
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }

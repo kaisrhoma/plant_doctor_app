@@ -1,32 +1,35 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // ألوان مبهجة وقريبة من التصميم
   static const Color primaryGreen = Color(0xFF66BB6A);
   static const Color accentGreen = Color(0xFF43A047);
   static const Color titleTheme = Color.fromARGB(255, 15, 75, 17);
   static const Color backraoundCard = Color(0xFFF1F8E9);
   static const Color headenTow = Color.fromARGB(255, 15, 75, 17);
 
-  /// 🌞 Light Theme (كما هو عندك)
+  /// 🌞 Light Theme (قريب من الأصلي + تحسينات بسيطة)
   static ThemeData get lightTheme {
+    final cs = ColorScheme.fromSeed(
+      seedColor: primaryGreen,
+      brightness: Brightness.light,
+      primary: primaryGreen,
+      secondary: accentGreen,
+    );
+
     return ThemeData(
-      canvasColor: Colors.transparent,
       fontFamily: 'Cairo',
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color.fromARGB(255, 255, 255, 255),
+
+      colorScheme: cs,
       primaryColor: primaryGreen,
 
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryGreen,
-        brightness: Brightness.light,
-        primary: primaryGreen,
-        secondary: accentGreen,
-      ),
+      scaffoldBackgroundColor: Colors.white,
+      canvasColor: Colors.transparent,
 
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: titleTheme),
@@ -36,6 +39,31 @@ class AppTheme {
           fontWeight: FontWeight.bold,
           fontFamily: 'Cairo',
         ),
+      ),
+
+      // ✅ يساعد الكروت تتبع الثيم
+      cardColor: Colors.white,
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 1,
+        margin: EdgeInsets.zero,
+      ),
+
+      // ✅ يساعد ListTile
+      listTileTheme: const ListTileThemeData(
+        iconColor: titleTheme,
+        textColor: titleTheme,
+      ),
+
+      // ✅ Dialog / BottomSheet يتبع الثيم بدل ما يبقى غريب في الدارك
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
 
       textTheme: const TextTheme(
@@ -66,24 +94,29 @@ class AppTheme {
     );
   }
 
-  /// 🌙 Dark Theme (إضافة بسيطة فقط)
+  /// 🌙 Dark Theme (نفس الأصلي لكن مضبوط)
   static ThemeData get darkTheme {
+    final cs = ColorScheme.fromSeed(
+      seedColor: primaryGreen,
+      brightness: Brightness.dark,
+      primary: primaryGreen,
+      secondary: accentGreen,
+    );
+
     return ThemeData(
       fontFamily: 'Cairo',
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF121212),
+
+      colorScheme: cs,
       primaryColor: primaryGreen,
 
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryGreen,
-        brightness: Brightness.dark,
-        primary: primaryGreen,
-        secondary: accentGreen,
-      ),
+      scaffoldBackgroundColor: const Color(0xFF121212),
+      canvasColor: const Color(0xFF121212),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color(0xFF121212), // ✅ بدل transparent
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
@@ -93,6 +126,29 @@ class AppTheme {
           fontWeight: FontWeight.bold,
           fontFamily: 'Cairo',
         ),
+      ),
+
+      // ✅ مهم: الكروت والليست تايل والديا로그 يلتزمون بالدارك
+      cardColor: const Color(0xFF1E1E1E),
+      cardTheme: const CardThemeData(
+        color: Color(0xFF1E1E1E),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+      ),
+
+      listTileTheme: const ListTileThemeData(
+        iconColor: Colors.white,
+        textColor: Colors.white,
+      ),
+
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Color(0xFF1E1E1E),
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Color(0xFF1E1E1E),
+        surfaceTintColor: Colors.transparent,
       ),
 
       textTheme: const TextTheme(

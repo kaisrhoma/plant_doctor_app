@@ -1,18 +1,18 @@
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import 'asset_paths.dart';
 import 'image_preprocessor.dart';
-import 'tflite_runtime.dart';
 
-class PlantResult {
+class PlantPrediction {
   final String label;
-  final double confidence; // 0..1
-  const PlantResult({required this.label, required this.confidence});
+  final double confidence;
+
+  PlantPrediction({required this.label, required this.confidence});
 }
 
 class PlantClassifier {
@@ -20,94 +20,118 @@ class PlantClassifier {
   static final PlantClassifier instance = PlantClassifier._();
 
   Interpreter? _interpreter;
-  Map<String, String>? _labels; // index -> label
+  List<String>? _labels;
+
+  static const int _inputSize = 224;
+
+  // ✅ إعدادات رفض "ليس نبات" (تقدر تعدلها بسهولة)
+  static const double _minConf = 0.55;     // أقل ثقة لقبول نبات
+  static const double _minMargin = 0.12;   // فرق top1-top2
+  static const double _minGreen = 0.06;    // نسبة الأخضر في الصورة
 
   Future<void> _ensureLoaded() async {
     if (_interpreter != null && _labels != null) return;
 
-    final bd = await rootBundle.load(AssetPaths.plantModel);
-    final bytes = bd.buffer.asUint8List(bd.offsetInBytes, bd.lengthInBytes);
+    // ✅ تأكد وجود الملف في assets (لو pubspec غلط سيفشل هنا)
+    await rootBundle.load(AssetPaths.plantModel);
 
-    // ✅ TFLite FlatBuffer identifier موجود في bytes[4..7]
-    final header = (bytes.length >= 8) ? String.fromCharCodes(bytes.sublist(4, 8)) : '';
-    if (bytes.length < 8 || header != 'TFL3') {
-      throw Exception(
-        'Plant model not valid TFLite: header=$header bytes=${bytes.length} path=${AssetPaths.plantModel}',
-      );
+    final path1 = AssetPaths.toInterpreterAsset(AssetPaths.plantModel);
+    final path2 = AssetPaths.plantModel;
+
+    debugPrint('Plant model bundle = ${AssetPaths.plantModel}');
+    debugPrint('Plant model fromAsset try1 = $path1');
+    debugPrint('Plant model fromAsset try2 = $path2');
+
+    try {
+      _interpreter = await Interpreter.fromAsset(path1);
+    } catch (e) {
+      debugPrint('fromAsset try1 failed: $e');
+      _interpreter = await Interpreter.fromAsset(path2);
     }
 
-    _interpreter = await Interpreter.fromBuffer(
-      bytes,
-      options: TFLiteRuntime.options(),
-    );
+    // Labels
+    final labelsStr = await rootBundle.loadString(AssetPaths.plantLabels);
+    final decoded = jsonDecode(labelsStr);
 
-    final txt = await rootBundle.loadString(AssetPaths.plantLabels);
-    final Map<String, dynamic> m = json.decode(txt);
-    _labels = m.map((k, v) => MapEntry(k.toString(), v.toString()));
+    if (decoded is Map) {
+      final entries = decoded.entries.toList()
+        ..sort((a, b) => int.parse(a.key).compareTo(int.parse(b.key)));
+      _labels = entries.map((e) => e.value.toString()).toList();
+    } else if (decoded is List) {
+      _labels = decoded.map((e) => e.toString()).toList();
+    } else {
+      throw Exception('plant labels json format not supported');
+    }
+
+    if (_labels!.isEmpty) throw Exception('plant labels empty');
+
+    final inShape = _interpreter!.getInputTensor(0).shape;
+    final outShape = _interpreter!.getOutputTensor(0).shape;
+    debugPrint('Plant model shapes: in=$inShape out=$outShape');
   }
 
-  Future<PlantResult> classify(Uint8List imageBytes) async {
+  Future<PlantPrediction> classify(Uint8List imageBytes) async {
     await _ensureLoaded();
+
+    final labels = _labels!;
     final interpreter = _interpreter!;
 
+    // ✅ اعرف نوع مدخل الموديل
     final inputTensor = interpreter.getInputTensor(0);
-    final inputShape = inputTensor.shape; // غالبًا [1,224,224,3]
-    final size = inputShape[1];
+    final inputShape = inputTensor.shape; // غالباً [1,224,224,3]
+    final isUint8 = inputTensor.type.toString().contains('uint8');
 
-    final input = ImagePreprocessor.toFloat32_0_1(imageBytes, size: size).reshape(inputShape);
+    // ✅ جهّز input حسب النوع
+    final inputBuffer = ImagePreprocessor.toModelInput(
+      imageBytes,
+      size: _inputSize,
+      inputTypeUint8: isUint8,
+    );
 
-    final outTensor = interpreter.getOutputTensor(0);
-    final outShape = outTensor.shape; // [1,N] أو [N]
-    final outLen = outShape.reduce((a, b) => a * b);
+    // ✅ output
+    final output = ImagePreprocessor.createOutput(labels.length);
 
-    final output = List.filled(outLen, 0.0).reshape(outShape);
+    final input = (inputBuffer is Uint8List)
+        ? inputBuffer.reshape(inputShape)
+        : (inputBuffer as Float32List).reshape(inputShape);
+
     interpreter.run(input, output);
 
-    final scores = _flattenToDoubles(output);
-    final probs = _maybeSoftmax(scores);
+    final probs = output[0];
 
-    final bestIdx = _argMax(probs);
-    final conf = probs[bestIdx];
-    final label = _labels![bestIdx.toString()] ?? 'unknown';
-
-    return PlantResult(label: label, confidence: conf);
-  }
-
-  List<double> _flattenToDoubles(dynamic output) {
-    final flat = <double>[];
-    void walk(dynamic v) {
-      if (v is List) {
-        for (final e in v) walk(e);
-      } else if (v is num) {
-        flat.add(v.toDouble());
+    // أفضل index
+    int bestIdx = 0;
+    double bestVal = probs[0];
+    for (int i = 1; i < probs.length; i++) {
+      if (probs[i] > bestVal) {
+        bestVal = probs[i];
+        bestIdx = i;
       }
     }
-    walk(output);
-    return flat;
-  }
 
-  List<double> _maybeSoftmax(List<double> v) {
-    final sum = v.fold<double>(0, (a, b) => a + b);
-    final allInRange = v.every((x) => x >= 0 && x <= 1);
-    if (allInRange && (sum - 1.0).abs() < 0.05) return v;
-
-    final maxV = v.reduce(math.max);
-    final exps = v.map((x) => math.exp(x - maxV)).toList();
-    final s = exps.fold<double>(0, (a, b) => a + b);
-    if (s == 0) return v;
-    return exps.map((e) => e / s).toList();
-  }
-
-  int _argMax(List<double> v) {
-    var bestI = 0;
-    var bestV = v[0];
-    for (var i = 1; i < v.length; i++) {
-      if (v[i] > bestV) {
-        bestV = v[i];
-        bestI = i;
-      }
+    // ثاني أفضل قيمة لحساب margin
+    double secondVal = 0.0;
+    for (int i = 0; i < probs.length; i++) {
+      if (i == bestIdx) continue;
+      if (probs[i] > secondVal) secondVal = probs[i];
     }
-    return bestI;
+    final margin = bestVal - secondVal;
+
+    final bestLabel = (bestIdx < labels.length) ? labels[bestIdx] : 'unknown';
+
+    // ✅ فحص الأخضر (قوي لمعرفة هل الصورة نبات أصلاً)
+    final green = ImagePreprocessor.greenRatio(imageBytes);
+
+    // ✅ Debug يساعدك تضبط القيم
+    debugPrint('PLANT best=$bestLabel conf=${(bestVal * 100).toStringAsFixed(1)}% '
+        'margin=${margin.toStringAsFixed(3)} green=${green.toStringAsFixed(3)}');
+
+    // ✅ بوابة رفض "ليس نبات"
+    if (bestVal < _minConf || margin < _minMargin || green < _minGreen) {
+      return PlantPrediction(label: 'unknown', confidence: bestVal);
+    }
+
+    return PlantPrediction(label: bestLabel, confidence: bestVal);
   }
 
   void dispose() {

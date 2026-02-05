@@ -16,31 +16,33 @@ class PlantDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ✅ بدل Colors.white
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          // 1. رأس الصفحة (الصورة)
           SliverAppBar(
             expandedHeight: 350,
             pinned: true,
             backgroundColor: AppTheme.primaryGreen,
+            surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: imagePath,
-                child: ClipRRect(
-                  child: Image.asset(
-                    imagePath,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
+                child: Image.asset(
+                  imagePath,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
               child: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.3),
+                backgroundColor: Colors.black.withOpacity(0.30),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
@@ -49,62 +51,58 @@ class PlantDetailsScreen extends StatelessWidget {
             ),
           ),
 
-          // 2. محتوى التفاصيل - يبدأ بالعنوان
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- العنوان أولاً ---
                   Text(
                     name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppTheme.titleTheme,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: isDark ? Colors.white : AppTheme.titleTheme,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     species,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppTheme.accentGreen,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // --- ثم شريط المعلومات السريعة ---
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.green[50],
+                      // ✅ بدل Colors.green[50]
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.20 : 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildDetailIcon(
-                          Icons.wb_sunny,
-                          "إضاءة قوية",
-                          Colors.orange,
-                        ),
-                        _buildDetailIcon(
-                          Icons.water_drop,
-                          "ري متوسط",
-                          Colors.blue,
-                        ),
-                        _buildDetailIcon(
-                          Icons.thermostat,
-                          "25°C - 30°C",
-                          Colors.redAccent,
-                        ),
+                        _buildDetailIcon(context, Icons.wb_sunny, "إضاءة قوية",
+                            Colors.orange),
+                        _buildDetailIcon(context, Icons.water_drop, "ري متوسط",
+                            Colors.blue),
+                        _buildDetailIcon(context, Icons.thermostat,
+                            "25°C - 30°C", Colors.redAccent),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 32),
 
-                  // --- ثم المعلومات التفصيلية والانتشار ---
                   _buildInfoSection(
                     context,
                     "العائلة النباتية",
@@ -125,19 +123,20 @@ class PlantDetailsScreen extends StatelessWidget {
 
                   Text(
                     "عن النبات",
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     "هذا النبات يعتبر من الأصناف المتأقلمة مع المناخ الليبي، ويتميز بقدرته على تحمل تقلبات درجات الحرارة بين الصيف والشتاء.",
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.titleTheme),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? Colors.white70 : AppTheme.titleTheme,
+                    ),
                   ),
 
-                  const SizedBox(height: 120), // مساحة للزر السفلي
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -145,7 +144,6 @@ class PlantDetailsScreen extends StatelessWidget {
         ],
       ),
 
-      // الزر السفلي
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -170,8 +168,10 @@ class PlantDetailsScreen extends StatelessWidget {
     );
   }
 
-  // دالة المعلومات التفصيلية
   Widget _buildInfoSection(BuildContext context, String title, String content) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -179,16 +179,17 @@ class PlantDetailsScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.primaryGreen),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.primaryGreen,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             content,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.titleTheme),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark ? Colors.white70 : AppTheme.titleTheme,
+            ),
           ),
           const Divider(height: 20),
         ],
@@ -196,8 +197,15 @@ class PlantDetailsScreen extends StatelessWidget {
     );
   }
 
-  // دالة أيقونات الشريط
-  Widget _buildDetailIcon(IconData icon, String label, Color color) {
+  Widget _buildDetailIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
         Icon(icon, color: color, size: 28),
@@ -206,7 +214,7 @@ class PlantDetailsScreen extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[700],
+            color: isDark ? Colors.white54 : Colors.grey[700],
             fontWeight: FontWeight.w600,
           ),
         ),

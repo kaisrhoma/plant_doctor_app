@@ -1,24 +1,26 @@
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import 'asset_paths.dart';
 import 'image_preprocessor.dart';
 import 'plant_classifier.dart';
-import 'tflite_runtime.dart';
 
 class DiseaseResult {
   final String plant;
   final String label;
+
+  /// ✅ الآن: هذه الثقة = ثقة التعرف على النبات فقط
   final double confidence;
+
   final String title;
   final String description;
   final String? modelUsed;
 
-  const DiseaseResult({
+  DiseaseResult({
     required this.plant,
     required this.label,
     required this.confidence,
@@ -35,101 +37,176 @@ class DiseaseClassifier {
   final Map<String, Interpreter> _models = {};
   final Map<String, List<String>> _labels = {};
 
-  static const _modelByPlant = <String, String>{
-    'tomato': AssetPaths.tomatoModel,
-    'potato': AssetPaths.potatoModel,
-    'pepper': AssetPaths.pepperModel,
-    'grape': AssetPaths.grapeModel,
-  };
-
-  static const _labelsByPlant = <String, String>{
-    'tomato': AssetPaths.tomatoLabels,
-    'potato': AssetPaths.potatoLabels,
-    'pepper': AssetPaths.pepperLabels,
-    'grape': AssetPaths.grapeLabels,
-  };
+  static const int _inputSize = 224;
 
   Future<DiseaseResult> classify(Uint8List imageBytes) async {
+    // =========================
+    // 1) Plant Classification
+    // =========================
     final plantRes = await PlantClassifier.instance.classify(imageBytes);
     final plant = _normalizePlant(plantRes.label);
 
-    final modelPath = _modelByPlant[plant];
-    final labelsPath = _labelsByPlant[plant];
+    // ✅ ثقة النبات فقط
+    final plantConfidence = plantRes.confidence;
 
-    if (modelPath == null || labelsPath == null) {
-      return const DiseaseResult(
+    // إذا لم يتعرف على النبات
+    if (plant == 'unknown') {
+      return DiseaseResult(
         plant: 'unknown',
         label: 'unknown',
-        confidence: 0,
-        title: 'غير مدعوم',
-        description: 'هذا النبات غير مدعوم حالياً في مودلات الأمراض.',
+        confidence: 0, // ✅ نخليها 0 عشان ما تظهر في الواجهة
+        title: 'تعذر التعرف على النبات',
+        description:
+            'لم نتمكن من تحديد نوع النبات بثقة كافية.\n'
+            '📌 حاول تصوير الورقة بوضوح مع إضاءة جيدة وخلفية بسيطة.',
         modelUsed: null,
       );
     }
 
+    // =========================
+    // 2) Disease Model per Plant
+    // =========================
+    final modelPath = _plantToModel[plant];
+    final labelsPath = _plantToLabels[plant];
+
+    // النبات معروف لكن غير مدعوم داخل التطبيق
+    if (modelPath == null || labelsPath == null) {
+      return DiseaseResult(
+        plant: plant,
+        label: 'unsupported',
+        confidence: plantConfidence, // ✅ ثقة النبات
+        title: 'نبات مدعوم جزئياً',
+        description:
+            'تم التعرف على النبات بنجاح ✅\n'
+            'لكن لا يوجد نموذج أمراض مخصص لهذا النبات داخل التطبيق حالياً.',
+        modelUsed: null,
+      );
+    }
+
+    // load model + labels
     final interpreter = await _loadModel(modelPath);
     final labels = await _loadLabels(labelsPath);
 
+    // نوع المدخل
     final inputTensor = interpreter.getInputTensor(0);
     final inputShape = inputTensor.shape;
-    final size = inputShape[1];
+    final isUint8 = inputTensor.type.toString().contains('uint8');
 
-    final input = ImagePreprocessor.toFloat32_0_1(imageBytes, size: size).reshape(inputShape);
+    debugPrint('Disease input type=${inputTensor.type} shape=$inputShape');
 
-    final outTensor = interpreter.getOutputTensor(0);
-    final outShape = outTensor.shape;
-    final outLen = outShape.reduce((a, b) => a * b);
+    // input
+    final inputBuffer = ImagePreprocessor.toModelInput(
+      imageBytes,
+      size: _inputSize,
+      inputTypeUint8: isUint8,
+    );
 
-    final output = List.filled(outLen, 0.0).reshape(outShape);
+    final input = (inputBuffer is Uint8List)
+        ? inputBuffer.reshape(inputShape)
+        : (inputBuffer as Float32List).reshape(inputShape);
+
+    // output
+    final output = ImagePreprocessor.createOutput(labels.length);
     interpreter.run(input, output);
 
-    final scores = _flattenToDoubles(output);
-    final probs = _maybeSoftmax(scores);
+    final probs = output[0];
 
-    final bestIdx = _argMax(probs);
-    final conf = probs[bestIdx];
+    // Top3 debug
+    final pairs = List.generate(probs.length, (i) => MapEntry(i, probs[i]));
+    pairs.sort((a, b) => b.value.compareTo(a.value));
+    final top3 = pairs
+        .take(3)
+        .map((e) => '${labels[e.key]}: ${(e.value * 100).toStringAsFixed(1)}%')
+        .join(' | ');
+    debugPrint('DISEASE TOP3 ($plant) => $top3');
+
+    final bestIdx = pairs.first.key;
+    final bestVal = pairs.first.value; // ✅ ثقة المرض (داخلية)
     final label = (bestIdx < labels.length) ? labels[bestIdx] : 'unknown';
+
+    // Threshold للمرض (يمكنك تعديله لاحقاً)
+    if (bestVal < 0.35) {
+      return DiseaseResult(
+        plant: plant,
+        label: 'uncertain',
+        confidence: plantConfidence, // ✅ ثقة النبات فقط
+        title: 'النتيجة غير مؤكدة',
+        description:
+            'تم التعرف على النبات ✅ لكن تشخيص المرض غير واضح.\n'
+            '📌 حاول التقاط صورة أقرب للورقة وتجنب الاهتزاز.\n'
+            'ℹ️ (ثقة التشخيص: ${(bestVal * 100).toStringAsFixed(1)}%)',
+        modelUsed: modelPath,
+      );
+    }
+
+    final niceTitle = _prettyTitle(label);
 
     return DiseaseResult(
       plant: plant,
       label: label,
-      confidence: conf,
-      title: _prettyTitle(label),
-      description: _basicDescription(plant: plant, label: label),
+      confidence: plantConfidence, // ✅ ثقة النبات فقط
+      title: niceTitle,
+      description:
+          '${_basicDescription(plant: plant, label: label)}\n'
+          'ℹ️ (ثقة التشخيص: ${(bestVal * 100).toStringAsFixed(1)}%)',
       modelUsed: modelPath,
     );
   }
 
-  Future<Interpreter> _loadModel(String modelPath) async {
-    if (_models.containsKey(modelPath)) return _models[modelPath]!;
-
-    final bd = await rootBundle.load(modelPath);
-    final bytes = bd.buffer.asUint8List(bd.offsetInBytes, bd.lengthInBytes);
-
-    // ✅ TFLite FlatBuffer identifier موجود في bytes[4..7]
-    final header = (bytes.length >= 8) ? String.fromCharCodes(bytes.sublist(4, 8)) : '';
-    if (bytes.length < 8 || header != 'TFL3') {
-      throw Exception(
-        'Disease model not valid TFLite: header=$header bytes=${bytes.length} path=$modelPath',
-      );
+  Future<Interpreter> _loadModel(String modelAssetFullPath) async {
+    if (_models.containsKey(modelAssetFullPath)) {
+      return _models[modelAssetFullPath]!;
     }
 
-    final i = await Interpreter.fromBuffer(
-      bytes,
-      options: TFLiteRuntime.options(),
-    );
-    _models[modelPath] = i;
-    return i;
+    await rootBundle.load(modelAssetFullPath);
+
+    final path1 = AssetPaths.toInterpreterAsset(modelAssetFullPath);
+    final path2 = modelAssetFullPath;
+
+    debugPrint('Disease model bundle = $modelAssetFullPath');
+    debugPrint('Disease model fromAsset try1 = $path1');
+    debugPrint('Disease model fromAsset try2 = $path2');
+
+    try {
+      final interpreter = await Interpreter.fromAsset(path1);
+      _models[modelAssetFullPath] = interpreter;
+
+      final inShape = interpreter.getInputTensor(0).shape;
+      final outShape = interpreter.getOutputTensor(0).shape;
+      debugPrint('Disease model shapes: in=$inShape out=$outShape');
+
+      return interpreter;
+    } catch (e1) {
+      debugPrint('fromAsset try1 failed: $e1');
+      try {
+        final interpreter = await Interpreter.fromAsset(path2);
+        _models[modelAssetFullPath] = interpreter;
+
+        final inShape = interpreter.getInputTensor(0).shape;
+        final outShape = interpreter.getOutputTensor(0).shape;
+        debugPrint('Disease model shapes: in=$inShape out=$outShape');
+
+        return interpreter;
+      } catch (e2) {
+        throw Exception(
+          'Failed to load model.\n'
+          'bundlePath=$modelAssetFullPath\n'
+          'try1(fromAsset)=$path1 -> $e1\n'
+          'try2(fromAsset)=$path2 -> $e2',
+        );
+      }
+    }
   }
 
-  Future<List<String>> _loadLabels(String labelsPath) async {
-    if (_labels.containsKey(labelsPath)) return _labels[labelsPath]!;
+  Future<List<String>> _loadLabels(String labelsAssetFullPath) async {
+    if (_labels.containsKey(labelsAssetFullPath)) {
+      return _labels[labelsAssetFullPath]!;
+    }
 
-    final txt = await rootBundle.loadString(labelsPath);
-    final decoded = json.decode(txt);
+    final str = await rootBundle.loadString(labelsAssetFullPath);
+    final decoded = jsonDecode(str);
 
     late final List<String> labels;
-
     if (decoded is Map) {
       final entries = decoded.entries.toList()
         ..sort((a, b) => int.parse(a.key).compareTo(int.parse(b.key)));
@@ -137,67 +214,11 @@ class DiseaseClassifier {
     } else if (decoded is List) {
       labels = decoded.map((e) => e.toString()).toList();
     } else {
-      throw Exception('labels json format not supported: $labelsPath');
+      throw Exception('labels json format not supported');
     }
 
-    _labels[labelsPath] = labels;
+    _labels[labelsAssetFullPath] = labels;
     return labels;
-  }
-
-  List<double> _flattenToDoubles(dynamic output) {
-    final flat = <double>[];
-    void walk(dynamic v) {
-      if (v is List) {
-        for (final e in v) walk(e);
-      } else if (v is num) {
-        flat.add(v.toDouble());
-      }
-    }
-    walk(output);
-    return flat;
-  }
-
-  List<double> _maybeSoftmax(List<double> v) {
-    final sum = v.fold<double>(0, (a, b) => a + b);
-    final allInRange = v.every((x) => x >= 0 && x <= 1);
-    if (allInRange && (sum - 1.0).abs() < 0.05) return v;
-
-    final maxV = v.reduce(math.max);
-    final exps = v.map((x) => math.exp(x - maxV)).toList();
-    final s = exps.fold<double>(0, (a, b) => a + b);
-    if (s == 0) return v;
-    return exps.map((e) => e / s).toList();
-  }
-
-  int _argMax(List<double> v) {
-    var bestI = 0;
-    var bestV = v[0];
-    for (var i = 1; i < v.length; i++) {
-      if (v[i] > bestV) {
-        bestV = v[i];
-        bestI = i;
-      }
-    }
-    return bestI;
-  }
-
-  String _normalizePlant(String raw) {
-    final s = raw.toLowerCase();
-    if (s.contains('tomato')) return 'tomato';
-    if (s.contains('potato')) return 'potato';
-    if (s.contains('pepper')) return 'pepper';
-    if (s.contains('grape')) return 'grape';
-    return 'unknown';
-  }
-
-  String _prettyTitle(String label) {
-    final parts = label.replaceAll('-', '_').split('_');
-    return parts.map((p) => p.isEmpty ? p : '${p[0].toUpperCase()}${p.substring(1)}').join(' ');
-  }
-
-  String _basicDescription({required String plant, required String label}) {
-    if (label.toLowerCase().contains('healthy')) return 'النبات يبدو سليماً ✅';
-    return 'تم اكتشاف: $label على $plant. افتح صفحة التفاصيل لطرق العلاج.';
   }
 
   void dispose() {
@@ -206,5 +227,42 @@ class DiseaseClassifier {
     }
     _models.clear();
     _labels.clear();
+  }
+
+  String _normalizePlant(String raw) {
+    final s = raw.toLowerCase().trim();
+    if (s.contains('tomato')) return 'tomato';
+    if (s.contains('potato')) return 'potato';
+    if (s.contains('grape')) return 'grape';
+    if (s.contains('pepper')) return 'pepper';
+    return s;
+  }
+
+  static final Map<String, String> _plantToModel = {
+    'tomato': AssetPaths.tomatoModel,
+    'potato': AssetPaths.potatoModel,
+    'grape': AssetPaths.grapeModel,
+    'pepper': AssetPaths.pepperModel,
+  };
+
+  static final Map<String, String> _plantToLabels = {
+    'tomato': AssetPaths.tomatoLabels,
+    'potato': AssetPaths.potatoLabels,
+    'grape': AssetPaths.grapeLabels,
+    'pepper': AssetPaths.pepperLabels,
+  };
+
+  String _prettyTitle(String label) {
+    final parts = label.replaceAll('-', '_').split('_');
+    return parts
+        .map((p) => p.isEmpty ? p : '${p[0].toUpperCase()}${p.substring(1)}')
+        .join(' ');
+  }
+
+  String _basicDescription({required String plant, required String label}) {
+    if (label.toLowerCase().contains('healthy')) {
+      return 'النبات يبدو سليماً ✅';
+    }
+    return 'تم اكتشاف: $label على $plant. افتح صفحة التفاصيل لطرق العلاج.';
   }
 }

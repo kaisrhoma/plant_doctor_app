@@ -17,14 +17,23 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         centerTitle: false,
+        backgroundColor: theme.scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
         title: Padding(
           padding: const EdgeInsets.only(right: 2),
           child: Text(
             "ابحث عن حلول لصحة نباتاتك",
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: cs.onSurface,
+            ),
           ),
         ),
         actions: [
@@ -32,12 +41,11 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.only(left: 2),
             child: IconButton(
               onPressed: () {
-                // TODO: Implement language change functionality
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تغيير اللغة غير متوفر حالياً')),
                 );
               },
-              icon: const Icon(Icons.language),
+              icon: Icon(Icons.language, color: cs.onSurface),
             ),
           ),
         ],
@@ -50,12 +58,22 @@ class HomeScreen extends StatelessWidget {
           children: [
             // 🔍 البحث
             TextField(
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.onSurface,
+              ),
               decoration: InputDecoration(
                 hintText: "بحث",
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                hintStyle: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurface.withOpacity(0.55),
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: cs.onSurface.withOpacity(0.55),
+                ),
                 filled: true,
-                fillColor: Colors.white,
+                // ✅ بدل Colors.white
+                fillColor: theme.cardColor,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 20,
@@ -63,15 +81,15 @@ class HomeScreen extends StatelessWidget {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide(
-                    color: Colors.grey.withAlpha(100), // ← خفيف
+                    color: cs.onSurface.withOpacity(0.12),
                     width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide(
-                    color: Colors.grey.withAlpha(100),
-                    width: 1,
+                    color: cs.primary.withOpacity(0.55),
+                    width: 1.2,
                   ),
                 ),
               ),
@@ -80,7 +98,10 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
 
             // 📂 التصنيفات
-            Text("التصنيفات", style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              "التصنيفات",
+              style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurface),
+            ),
             const SizedBox(height: 10),
 
             SizedBox(
@@ -115,17 +136,21 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.only(right: 15),
               decoration: BoxDecoration(
-                // This is for shadow effect niga hahahaha :)
-                // boxShadow: [
-                //   BoxShadow(
-                //     color: Colors.black.withAlpha(0), // 0–255
-                //     blurRadius: 12,
-                //     spreadRadius: 1,
-                //     offset: const Offset(0, 0),
-                //   ),
-                // ],
-                color: const Color.fromARGB(255, 233, 248, 215),
+                // ✅ بدل لون ثابت
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: cs.onSurface.withOpacity(0.06),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.20 : 0.08),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,31 +160,25 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        //const SizedBox(height: 16),
                         const SizedBox(height: 10),
-                        const Text(
+                        Text(
                           "صحة نباتاتك هي مهمتنا",
-                          style: TextStyle(
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(255, 15, 75, 17),
+                            color: cs.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
-                          style: TextStyle(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 12,
-                            color: Color.fromARGB(255, 15, 75, 17),
+                            color: cs.onSurface.withOpacity(0.75),
                           ),
                         ),
                       ],
                     ),
-                    // child: Text(
-                    //   "صحة نباتاتك هي مهمتنا\n\n"
-                    //   "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
-                    //   style: const TextStyle(fontSize: 14),
-                    // ),
                   ),
                   const SizedBox(width: 10),
                   Image.asset("assets/images/plant.png", height: 150),
@@ -170,7 +189,10 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 15),
 
             // ⚠️ المشاكل الشائعة
-            Text("مشاكل شائعة", style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              "مشاكل شائعة",
+              style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurface),
+            ),
             const SizedBox(height: 10),
 
             GridView.count(
@@ -201,10 +223,10 @@ class HomeScreen extends StatelessWidget {
                   "assets/images/wilting.jpg",
                   "نبات الزيتون",
                 ),
-                // ... البقية
               ],
             ),
-            SizedBox(height: 50),
+
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -220,8 +242,11 @@ class _CategoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return SizedBox(
-      width: 90, // ⭐ مهم جدًا
+      width: 90,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -232,7 +257,9 @@ class _CategoryItem extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurface.withOpacity(0.75),
+            ),
           ),
         ],
       ),
@@ -243,19 +270,28 @@ class _CategoryItem extends StatelessWidget {
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
-  final String plantName; // اسم النبات الذي سيمرر للشاشة التالية فقط
+  final String plantName;
 
   const _ProblemCard(this.title, this.image, this.plantName);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.backraoundCard,
+        // ✅ بدل AppTheme.backraoundCard الثابت
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: cs.onSurface.withOpacity(0.06),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(30),
+            color: Colors.black.withOpacity(isDark ? 0.20 : 0.10),
             blurRadius: 12,
             spreadRadius: 1,
             offset: const Offset(0, 0),
@@ -263,19 +299,17 @@ class _ProblemCard extends StatelessWidget {
         ],
       ),
       child: Material(
-        // أضفنا Material هنا ليعمل تأثير InkWell بشكل صحيح
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          // داخل ويدجت _ProblemCard في خاصية onTap:
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => DiseaseDetailsScreen(
-                  diseseTitle: title, // يمرر لـ diseseTitle
-                  diseaseImage: image, // يمرر لـ diseaseImage
-                  plantName: plantName, // يمرر لـ plantName
+                  diseseTitle: title,
+                  diseaseImage: image,
+                  plantName: plantName,
                 ),
               ),
             );
@@ -298,14 +332,14 @@ class _ProblemCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.titleTheme,
+                    // ✅ بدل AppTheme.titleTheme الثابت
+                    color: cs.onSurface,
                   ),
                 ),
               ),
-              // اسم النبات موجود في الكود لكن لا يوجد ويدجت Text تعرضه هنا
             ],
           ),
         ),

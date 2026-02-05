@@ -7,7 +7,8 @@ class DiseaseDetailsScreen extends StatelessWidget {
   final String diseseTitle;
   final String diseaseImage;
   final String plantName;
-  // أضفت المتغيرات التي ستأتي من قاعدة البيانات لاحقاً
+
+  // لاحقاً من قاعدة البيانات
   final String treatment;
   final String? prevention;
   final String? notes;
@@ -17,23 +18,26 @@ class DiseaseDetailsScreen extends StatelessWidget {
     required this.diseseTitle,
     required this.diseaseImage,
     required this.plantName,
-    this.treatment =
-        "يتم استخراج خطة العلاج من قاعدة البيانات...", // قيم افتراضية للتجربة
+    this.treatment = "يتم استخراج خطة العلاج من قاعدة البيانات...",
     this.prevention = "نظافة الأدوات، تجنب الرطوبة العالية...",
     this.notes = "يفضل استشارة مهندس زراعي في الحالات المتقدمة.",
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      // لجعل المحتوى يمتد خلف شريط التنقل الشفاف الذي ضبطناه سابقاً
+      // ✅ لجعل المحتوى يمتد خلف شريط التنقل (مثل ما كنت)
       extendBody: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           ListView(
             padding: EdgeInsets.zero,
             children: [
-              // الرأس مع الصورة المنحنية
               CurvedHeaderImage(imagePath: diseaseImage, height: 250),
 
               Padding(
@@ -41,19 +45,21 @@ class DiseaseDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // العنوان واسم النبات
                     Center(
                       child: Column(
                         children: [
                           Text(
                             diseseTitle,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.titleTheme, // تمييز اسم المرض
-                                ),
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              // ✅ بدل AppTheme.titleTheme الثابت
+                              color: cs.onSurface,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 8),
+
+                          // Chip النبات (قابل للضغط)
                           InkWell(
                             onTap: () {
                               Navigator.push(
@@ -70,25 +76,25 @@ class DiseaseDetailsScreen extends StatelessWidget {
                             child: Chip(
                               label: Text(
                                 plantName,
-                                style: const TextStyle(
-                                  color: Colors.green,
+                                style: TextStyle(
+                                  color: cs.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              backgroundColor: Colors.white,
-                              // إضافة ظل خفيف ليعطي إيحاء بأنه زر قابل للضغط
+                              // ✅ بدل Colors.white
+                              backgroundColor: theme.cardColor,
                               elevation: 2,
-                              shadowColor: Colors.green.withOpacity(0.3),
-                              side: const BorderSide(
-                                color: Colors.green,
+                              shadowColor: cs.primary.withOpacity(0.20),
+                              side: BorderSide(
+                                color: cs.primary.withOpacity(0.65),
                                 width: 1,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              avatar: const Icon(
+                              avatar: Icon(
                                 Icons.local_florist,
-                                color: Colors.green,
+                                color: cs.primary,
                                 size: 18,
                               ),
                             ),
@@ -96,9 +102,9 @@ class DiseaseDetailsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 25),
 
-                    // --- قسم الخطة العلاجية (Treatment) ---
                     _buildInfoCard(
                       context,
                       title: "الخطة العلاجية",
@@ -109,7 +115,6 @@ class DiseaseDetailsScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // --- قسم الوقاية (Prevention) ---
                     if (prevention != null)
                       _buildInfoCard(
                         context,
@@ -121,7 +126,6 @@ class DiseaseDetailsScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // --- قسم ملاحظات إضافية (Notes) ---
                     if (notes != null)
                       _buildInfoCard(
                         context,
@@ -131,21 +135,20 @@ class DiseaseDetailsScreen extends StatelessWidget {
                         accentColor: Colors.orange,
                       ),
 
-                    const SizedBox(height: 80), // مساحة إضافية أسفل القائمة
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
             ],
           ),
 
-          // زر الرجوع
-          _buildBackButton(context),
+          _buildBackButton(context, isDark),
         ],
       ),
     );
   }
 
-  // ودجت بناء البطاقة الاحترافية
+  // بطاقة المعلومات
   Widget _buildInfoCard(
     BuildContext context, {
     required String title,
@@ -153,15 +156,24 @@ class DiseaseDetailsScreen extends StatelessWidget {
     required IconData icon,
     required Color accentColor,
   }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ✅ بدل Colors.white
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: cs.onSurface.withOpacity(0.06),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(30),
+            color: Colors.black.withOpacity(isDark ? 0.20 : 0.10),
             blurRadius: 12,
             spreadRadius: 1,
             offset: const Offset(0, 0),
@@ -177,31 +189,37 @@ class DiseaseDetailsScreen extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: accentColor),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
-          const Divider(height: 20),
+          Divider(
+            height: 20,
+            color: cs.onSurface.withOpacity(0.12),
+          ),
           Text(
             content,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.titleTheme),
+            style: theme.textTheme.bodySmall?.copyWith(
+              // ✅ بدل AppTheme.titleTheme (الثابت)
+              color: cs.onSurface.withOpacity(0.85),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // زر الرجوع بتصميم طافي
-  Widget _buildBackButton(BuildContext context) {
+  // زر الرجوع
+  Widget _buildBackButton(BuildContext context, bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: CircleAvatar(
-          backgroundColor: Colors.black.withOpacity(0.4),
+          backgroundColor: Colors.black.withOpacity(isDark ? 0.35 : 0.40),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
