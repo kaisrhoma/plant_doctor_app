@@ -231,7 +231,8 @@ class _ScanScreenState extends State<ScanScreen>
                         duration: const Duration(milliseconds: 200),
                         child: Text(
                           'جاري الفحص...',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: Colors.white.withOpacity(0.95),
                                 fontWeight: FontWeight.w700,
                               ),
@@ -276,7 +277,8 @@ class _ScanScreenState extends State<ScanScreen>
                               ? const SizedBox.shrink()
                               : _ResultCard(
                                   title: _result!.title,
-                                  desc: 'النبات: ${_result!.plant}\n'
+                                  desc:
+                                      'النبات: ${_result!.plant}\n'
                                       'الثقة: ${_pct(_result!.confidence)}\n'
                                       '${_result!.description}',
                                   thumbPath: _imgPath,
@@ -308,8 +310,8 @@ class _ScanScreenState extends State<ScanScreen>
                                                   MaterialPageRoute(
                                                     builder: (_) =>
                                                         DiseasePlantScreen(
-                                                      plantName: r.plant,
-                                                    ),
+                                                          plantCode: r.plant,
+                                                        ),
                                                   ),
                                                 );
                                               },
@@ -603,8 +605,8 @@ class _ResultCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(

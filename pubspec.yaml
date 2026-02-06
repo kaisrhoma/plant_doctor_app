@@ -46,8 +46,13 @@ flutter:
     - assets/images/
     - assets/lottie/
     - assets/category_icons/
+    - assets/plants/
+    - assets/pepper/
+    - assets/potato/
+    - assets/tomato/
+    - assets/grape/
     - assets/model/data_models_plus_lapels/
-    - assets/database/plant_doctorv2.db
+    - assets/database/plant_doctorv4.db
 
   fonts:
     - family: Cairo

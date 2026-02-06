@@ -1,42 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:plant_doctor_app/ui/widgets/curved_header_image.dart';
 import '../plant/plant_details_screen.dart';
+import '../../data/database/database_helper.dart';
+import '../../core/runtime_settings.dart';
 
-// تحديث القائمة لتشمل 3 عناصر لكل نبات (الاسم، النوع، مسار الصورة)
-final List<Map<String, String>> plantList = [
-  {
-    "name": "نباتات ورقية",
-    "species": "نباتات زينة",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-  {
-    "name": "زهور الربيع",
-    "species": "نباتات مزهرة",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-  {
-    "name": "أشجار الفاكهة",
-    "species": "أشجار مثمرة",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-  {
-    "name": "خضروات عضوية",
-    "species": "محاصيل شتوية",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-  {
-    "name": "حبوب كاملة",
-    "species": "محاصيل حقلية",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-  {
-    "name": "أشجار حرجية",
-    "species": "نباتات برية",
-    "image": "assets/images/plant_leaf.jpg",
-  },
-];
-
-class CategoryScreen extends StatelessWidget {
+class CategoryScreen extends StatefulWidget {
   final String categoryTitle;
   final String categoryImage;
   final String categoryCode; // رمز الفئة لجلب البيانات من القاعدة
@@ -49,141 +17,201 @@ class CategoryScreen extends StatelessWidget {
   });
 
   @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen> {
+  late Future<List<Map<String, dynamic>>> _plantsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
+      categoryCode: widget.categoryCode,
+      langCode: RuntimeSettings.locale.value.languageCode,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      // ✅ بدل Colors.white
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          ListView(
-            padding: EdgeInsets.zero,
+    return ValueListenableBuilder(
+      valueListenable: RuntimeSettings.locale,
+      builder: (_, loc, __) {
+        final lang = loc.languageCode;
+
+        // 🔁 لو تغيرت اللغة، نعيد تحميل النباتات
+        _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
+          categoryCode: widget.categoryCode,
+          langCode: lang,
+        );
+        return Scaffold(
+          // ✅ بدل Colors.white
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: Stack(
             children: [
-              CurvedHeaderImage(imagePath: categoryImage, height: 220),
-              const SizedBox(height: 20),
-
-              // عنوان الفئة
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(categoryTitle, style: theme.textTheme.bodyLarge),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 🔍 البحث
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: TextField(
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white70 : null,
+              ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  CurvedHeaderImage(
+                    imagePath: widget.categoryImage,
+                    height: 220,
                   ),
-                  decoration: InputDecoration(
-                    hintText: "ابحث عن نباتك",
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: isDark ? Colors.white54 : Colors.grey,
-                    ),
-                    filled: true,
-                    // ✅ يتبع الثيم
-                    fillColor: theme.cardColor,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 20,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(
-                        color:
-                            (isDark
-                                    ? Colors.white.withOpacity(0.12)
-                                    : Colors.grey.withOpacity(0.25))
-                                .withOpacity(1),
-                        width: 1,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(
-                        color: cs.primary.withOpacity(0.55),
-                        width: 1.2,
-                      ),
+                  const SizedBox(height: 20),
+
+                  // عنوان الفئة
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      widget.categoryTitle,
+                      style: theme.textTheme.bodyLarge,
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // قائمة النباتات
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: plantList.length,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, index) {
-                  final plant = plantList[index];
-                  return PlantCard(
-                    name: plant['name']!,
-                    species: plant['species']!,
-                    imagePath: plant['image']!,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlantDetailsScreen(
-                            name: plant['name']!,
-                            imagePath: plant['image']!,
-                            species: plant['species']!,
+                  // 🔍 البحث
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark ? Colors.white70 : null,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: lang == 'ar'
+                            ? "ابحث عن نباتك"
+                            : "Find your plants",
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
+                        filled: true,
+                        // ✅ يتبع الثيم
+                        fillColor: theme.cardColor,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide(
+                            color:
+                                (isDark
+                                        ? Colors.white.withOpacity(0.12)
+                                        : Colors.grey.withOpacity(0.25))
+                                    .withOpacity(1),
+                            width: 1,
                           ),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(
+                            color: cs.primary.withOpacity(0.55),
+                            width: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _plantsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                          child: Text(
+                            lang == 'ar'
+                                ? "لا توجد نباتات"
+                                : "No plants available",
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: isDark ? Colors.white54 : Colors.grey,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final plants = snapshot.data!;
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: plants.length,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemBuilder: (context, index) {
+                          final plant = plants[index];
+
+                          return PlantCard(
+                            name: plant['plant_name'],
+                            species: plant['plant_description'] ?? '',
+                            imagePath:
+                                plant['image_path'] ?? 'assets/images/spl.png',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PlantDetailsScreen(
+                                    plant_code: plant['plant_code'],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+
+                  const SizedBox(height: 20),
+                  Text(
+                    lang == 'ar'
+                        ? 'لا توجد نباتات أخرى في هذه الفئة.'
+                        : 'No more plants in this category.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
               ),
 
-              const SizedBox(height: 20),
-
-              Text(
-                'لا توجد نباتات أخرى في هذه الفئة.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.white54 : Colors.grey,
+              // زر الرجوع
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        // ✅ متوافق مع الدارك
+                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.40),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 100),
             ],
           ),
-
-          // زر الرجوع
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: InkWell(
-                onTap: () => Navigator.pop(context),
-                borderRadius: BorderRadius.circular(30),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    // ✅ متوافق مع الدارك
-                    color: Colors.black.withOpacity(isDark ? 0.35 : 0.40),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_back, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

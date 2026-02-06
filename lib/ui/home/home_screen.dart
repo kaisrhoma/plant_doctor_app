@@ -24,10 +24,12 @@ class HomeScreen extends StatelessWidget {
             ? const Color(0xFF1E2A1F) // أخضر غامق مناسب
             : const Color.fromARGB(255, 233, 248, 215);
 
-        final introTitleColor =
-            isDark ? Colors.white : const Color.fromARGB(255, 15, 75, 17);
-        final introBodyColor =
-            isDark ? Colors.white70 : const Color.fromARGB(255, 15, 75, 17);
+        final introTitleColor = isDark
+            ? Colors.white
+            : const Color.fromARGB(255, 15, 75, 17);
+        final introBodyColor = isDark
+            ? Colors.white70
+            : const Color.fromARGB(255, 15, 75, 17);
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -116,7 +118,9 @@ class HomeScreen extends StatelessWidget {
                       }
                       if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return Center(
-                          child: Text(lang == 'ar' ? "لا توجد بيانات" : "No Data"),
+                          child: Text(
+                            lang == 'ar' ? "لا توجد بيانات" : "No Data",
+                          ),
                         );
                       }
 
@@ -155,7 +159,7 @@ class HomeScreen extends StatelessWidget {
 
                 // 🟩 بطاقة التعريف (✅ دارك مود مضبوط)
                 Container(
-                  padding: const EdgeInsets.only(right: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: introCardBg,
                     borderRadius: BorderRadius.circular(20),
@@ -193,7 +197,7 @@ class HomeScreen extends StatelessWidget {
                                     ? "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض."
                                     : "Send a plant photo to detect whether it’s healthy or infected, with disease info.",
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: introBodyColor,
                                 ),
                               ),
@@ -216,19 +220,53 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.9,
-                  children: const [
-                    _ProblemCard("اصفرار الأوراق", "assets/images/yellow.jpg", "نبات الياسمين"),
-                    _ProblemCard("احتراق الأطراف", "assets/images/brown.jpg", "نبات السجاد"),
-                    _ProblemCard('بقع على الاوراق', "assets/images/leaf_spot.jpg", "نبات الورود"),
-                    _ProblemCard('ذبول الاوراق', "assets/images/wilting.jpg", "نبات الزيتون"),
-                  ],
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: DatabaseHelper.instance.getRandomDiseases(
+                    langCode: lang,
+                    limit: 6,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Text(
+                          lang == 'ar'
+                              ? "لا توجد مشاكل شائعة"
+                              : "No common problems",
+                        ),
+                      );
+                    }
+
+                    final diseases = snapshot.data!;
+
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.9,
+                          ),
+                      itemCount: diseases.length,
+                      itemBuilder: (context, index) {
+                        final d = diseases[index];
+
+                        return _ProblemCard(
+                          title: d['disease_name'],
+                          image:
+                              d['image_path'] ??
+                              'assets/images/placeholder.png',
+                          diseaseCode: d['disease_code'],
+                          plantCode: d['plant_code'],
+                        );
+                      },
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 50),
@@ -273,9 +311,15 @@ class _CategoryItem extends StatelessWidget {
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
-  final String plantName;
+  final String diseaseCode;
+  final String plantCode;
 
-  const _ProblemCard(this.title, this.image, this.plantName);
+  const _ProblemCard({
+    required this.title,
+    required this.image,
+    required this.diseaseCode,
+    required this.plantCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -303,19 +347,21 @@ class _ProblemCard extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => DiseaseDetailsScreen(
-                  diseseTitle: title,
-                  diseaseImage: image,
-                  plantName: plantName,
+                builder: (_) => DiseaseDetailsScreen(
+                  diseaseCode: diseaseCode,
+                  plantCode: plantCode,
                 ),
               ),
             );
           },
+
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: Image.asset(
                   image,
                   height: 145,
@@ -323,13 +369,17 @@ class _ProblemCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color:AppTheme.titleTheme,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),

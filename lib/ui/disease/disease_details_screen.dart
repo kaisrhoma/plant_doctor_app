@@ -1,27 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:plant_doctor_app/ui/widgets/curved_header_image.dart';
-import '../../core/app_theme.dart';
 import '../plant/plant_details_screen.dart';
+import '../../data/database/database_helper.dart';
+import '../../core/runtime_settings.dart';
+import '../../core/app_theme.dart';
 
-class DiseaseDetailsScreen extends StatelessWidget {
-  final String diseseTitle;
-  final String diseaseImage;
-  final String plantName;
-
-  // لاحقاً من قاعدة البيانات
-  final String treatment;
-  final String? prevention;
-  final String? notes;
+class DiseaseDetailsScreen extends StatefulWidget {
+  final String diseaseCode;
+  final String plantCode;
 
   const DiseaseDetailsScreen({
     super.key,
-    required this.diseseTitle,
-    required this.diseaseImage,
-    required this.plantName,
-    this.treatment = "يتم استخراج خطة العلاج من قاعدة البيانات...",
-    this.prevention = "نظافة الأدوات، تجنب الرطوبة العالية...",
-    this.notes = "يفضل استشارة مهندس زراعي في الحالات المتقدمة.",
+    required this.diseaseCode,
+    required this.plantCode,
   });
+
+  @override
+  State<DiseaseDetailsScreen> createState() => _DiseaseDetailsScreenState();
+}
+
+class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen> {
+  late Future<Map<String, dynamic>?> _diseaseFuture;
+  String _lang = RuntimeSettings.locale.value.languageCode;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _diseaseFuture = DatabaseHelper.instance.getDiseaseFullDetails(
+      diseaseCode: widget.diseaseCode,
+      plantCode: widget.plantCode,
+      langCode: RuntimeSettings.locale.value.languageCode,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,122 +39,166 @@ class DiseaseDetailsScreen extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      // ✅ لجعل المحتوى يمتد خلف شريط التنقل (مثل ما كنت)
-      extendBody: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          ListView(
-            padding: EdgeInsets.zero,
+    return ValueListenableBuilder(
+      valueListenable: RuntimeSettings.locale,
+      builder: (_, loc, __) {
+        _lang = loc.languageCode;
+        return Scaffold(
+          // ✅ لجعل المحتوى يمتد خلف شريط التنقل (مثل ما كنت)
+          extendBody: true,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: Stack(
             children: [
-              CurvedHeaderImage(imagePath: diseaseImage, height: 250),
+              FutureBuilder<Map<String, dynamic>?>(
+                future: _diseaseFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            diseseTitle,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              // ✅ بدل AppTheme.titleTheme الثابت
-                              color: cs.onSurface,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
+                  if (!snapshot.hasData || snapshot.data == null) {
+                    return Center(
+                      child: Text(
+                        _lang == 'ar'
+                            ? "لا توجد بيانات للمرض"
+                            : "No data available for this disease",
+                      ),
+                    );
+                  }
 
-                          // Chip النبات (قابل للضغط)
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PlantDetailsScreen(
-                                    name: plantName,
-                                    imagePath: diseaseImage,
-                                    species: "معلومات عن $plantName",
+                  final d = snapshot.data!;
+
+                  return ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      CurvedHeaderImage(
+                        imagePath:
+                            d['image_path'] ??
+                            'assets/images/disease_placeholder.jpg',
+                        height: 250,
+                      ),
+
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    d['disease_name'],
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.titleTheme,
+                                        ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                              );
-                            },
-                            child: Chip(
-                              label: Text(
-                                plantName,
-                                style: TextStyle(
-                                  color: cs.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              // ✅ بدل Colors.white
-                              backgroundColor: theme.cardColor,
-                              elevation: 2,
-                              shadowColor: cs.primary.withOpacity(0.20),
-                              side: BorderSide(
-                                color: cs.primary.withOpacity(0.65),
-                                width: 1,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              avatar: Icon(
-                                Icons.local_florist,
-                                color: cs.primary,
-                                size: 18,
+                                  const SizedBox(height: 8),
+
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PlantDetailsScreen(
+                                            plant_code: widget.plantCode,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Chip(
+                                      label: Text(
+                                        d['plant_name'],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
+                                      avatar: Icon(
+                                        Icons.local_florist,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        size: 18,
+                                      ),
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).cardColor,
+                                      elevation: 2,
+                                      shadowColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.25),
+                                      side: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.6),
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+
+                            const SizedBox(height: 25),
+
+                            _buildInfoCard(
+                              context,
+                              title: _lang == 'ar'
+                                  ? "الخطة العلاجية"
+                                  : "Treatment Plan",
+                              content: d['treatment'] ?? 'غير متوفر',
+                              icon: Icons.medical_services_outlined,
+                              accentColor: Colors.blue,
+                            ),
+
+                            if (d['prevention'] != null) ...[
+                              const SizedBox(height: 16),
+                              _buildInfoCard(
+                                context,
+                                title: _lang == 'ar'
+                                    ? "طرق الوقاية"
+                                    : "Prevention Methods  ",
+                                content: d['prevention'],
+                                icon: Icons.shield_outlined,
+                                accentColor: Colors.green,
+                              ),
+                            ],
+
+                            if (d['notes'] != null) ...[
+                              const SizedBox(height: 16),
+                              _buildInfoCard(
+                                context,
+                                title: _lang == 'ar' ? "ملاحظات" : "Notes",
+                                content: d['notes'],
+                                icon: Icons.info_outline,
+                                accentColor: Colors.orange,
+                              ),
+                            ],
+
+                            const SizedBox(height: 80),
+                          ],
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    _buildInfoCard(
-                      context,
-                      title: "الخطة العلاجية",
-                      content: treatment,
-                      icon: Icons.medical_services_outlined,
-                      accentColor: Colors.blue,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (prevention != null)
-                      _buildInfoCard(
-                        context,
-                        title: "طرق الوقاية",
-                        content: prevention!,
-                        icon: Icons.shield_outlined,
-                        accentColor: Colors.green,
-                      ),
-
-                    const SizedBox(height: 16),
-
-                    if (notes != null)
-                      _buildInfoCard(
-                        context,
-                        title: "ملاحظات هامة",
-                        content: notes!,
-                        icon: Icons.info_outline,
-                        accentColor: Colors.orange,
-                      ),
-
-                    const SizedBox(height: 80),
-                  ],
-                ),
+                    ],
+                  );
+                },
               ),
+
+              _buildBackButton(context, isDark),
             ],
           ),
-
-          _buildBackButton(context, isDark),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -167,10 +221,7 @@ class DiseaseDetailsScreen extends StatelessWidget {
         // ✅ بدل Colors.white
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: cs.onSurface.withOpacity(0.06),
-          width: 1,
-        ),
+        border: Border.all(color: cs.onSurface.withOpacity(0.06), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.20 : 0.10),
@@ -196,10 +247,7 @@ class DiseaseDetailsScreen extends StatelessWidget {
               ),
             ],
           ),
-          Divider(
-            height: 20,
-            color: cs.onSurface.withOpacity(0.12),
-          ),
+          Divider(height: 20, color: cs.onSurface.withOpacity(0.12)),
           Text(
             content,
             style: theme.textTheme.bodySmall?.copyWith(
