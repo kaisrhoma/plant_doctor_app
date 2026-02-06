@@ -201,14 +201,46 @@ class _ScanScreenState extends State<ScanScreen>
         children: [
           if (camReady) CameraPreview(_cam!),
 
-          // ✅ overlay خارج المستطيل + ثقب شفاف (مرفوع بنفس _vfLift)
+          // ✅ الإطار + الثقب داخل بعض (نفس المكان)
           if (camReady)
-            _HoleOverlay(
-              holeW: _vfW,
-              holeH: _vfH,
-              radius: _vfR,
-              dimOpacity: _dimOpacity,
-              lift: _vfLift,
+            Align(
+              alignment: Alignment(0, -_vfLift),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  _HoleOverlay(
+                    holeW: _vfW,
+                    holeH: _vfH,
+                    radius: _vfR,
+                    dimOpacity: _dimOpacity,
+                    lift: 0.0, // ✅ صار داخل Align لذلك نخليه 0
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ViewFinder(
+                        scanCtrl: _scanCtrl,
+                        showScan: _busy,
+                        width: _vfW,
+                        height: _vfH,
+                        radius: _vfR,
+                      ),
+                      const SizedBox(height: 12),
+                      AnimatedOpacity(
+                        opacity: _busy ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          'جاري الفحص...',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withOpacity(0.95),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
           SafeArea(
@@ -225,36 +257,6 @@ class _ScanScreenState extends State<ScanScreen>
                   ),
                 ),
 
-                // ✅ المستطيل مرفوع للأعلى
-                Align(
-                  alignment: Alignment(0, -_vfLift),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ViewFinder(
-                        scanCtrl: _scanCtrl,
-                        showScan: _busy,
-                        width: _vfW,
-                        height: _vfH,
-                        radius: _vfR,
-                      ),
-                      const SizedBox(height: 12),
-                      AnimatedOpacity(
-                        opacity: _busy ? 1 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          'جاري الفحص...',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Colors.white.withOpacity(0.95),
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
                 // ✅ أسفل الشاشة: (بطاقة النتيجة فوق الأزرار) + الأزرار مرفوعة
                 Align(
                   alignment: Alignment.bottomCenter,
@@ -262,7 +264,7 @@ class _ScanScreenState extends State<ScanScreen>
                     padding: EdgeInsets.only(
                       left: 14,
                       right: 14,
-                      bottom: _buttonsBottomPad, // ✅ هنا رفع الأزرار
+                      bottom: _buttonsBottomPad,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -274,8 +276,7 @@ class _ScanScreenState extends State<ScanScreen>
                               ? const SizedBox.shrink()
                               : _ResultCard(
                                   title: _result!.title,
-                                  desc:
-                                      'النبات: ${_result!.plant}\n'
+                                  desc: 'النبات: ${_result!.plant}\n'
                                       'الثقة: ${_pct(_result!.confidence)}\n'
                                       '${_result!.description}',
                                   thumbPath: _imgPath,
@@ -307,8 +308,8 @@ class _ScanScreenState extends State<ScanScreen>
                                                   MaterialPageRoute(
                                                     builder: (_) =>
                                                         DiseasePlantScreen(
-                                                          plantName: r.plant,
-                                                        ),
+                                                      plantName: r.plant,
+                                                    ),
                                                   ),
                                                 );
                                               },
@@ -602,8 +603,8 @@ class _ResultCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(

@@ -1,34 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
+import '../../core/runtime_settings.dart';
 import '../categoray/categoray_screen.dart';
 import '../disease/disease_details_screen.dart';
 import '../../data/database/database_helper.dart';
 
-final List<List<String>> items = [
-  ["نباتات ورقية", "assets/images/plant_leaf.jpg"],
-  ["زهور", "assets/images/flowers.jpg"],
-  ["فواكه", "assets/images/fruite.jpg"],
-  ["خضروات", "assets/images/vegetables.jpg"],
-  ["حبوب", "assets/images/fruite.jpg"],
-  ["أشجار", "assets/images/fruite.jpg"],
-];
-
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  String currentLang = 'ar';
-  late Future<List<Map<String, dynamic>>> _categoriesFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _categoriesFuture = DatabaseHelper.instance.getCategories(currentLang);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,248 +14,229 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        centerTitle: false,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          currentLang == 'ar'
-              ? "ابحث عن حلول لصحة نباتاتك"
-              : "Find solutions for your plants",
-          style: theme.textTheme.bodyLarge,
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                currentLang = (currentLang == 'ar') ? 'en' : 'ar';
-                _categoriesFuture = DatabaseHelper.instance.getCategories(
-                  currentLang,
-                );
-              });
-            },
+    return ValueListenableBuilder<Locale>(
+      valueListenable: RuntimeSettings.locale,
+      builder: (_, loc, __) {
+        final lang = loc.languageCode;
 
-            icon: Icon(Icons.language, color: AppTheme.titleTheme),
-          ),
-        ],
-      ),
+        // ✅ كارد التعريف يتغير في الدارك
+        final introCardBg = isDark
+            ? const Color(0xFF1E2A1F) // أخضر غامق مناسب
+            : const Color.fromARGB(255, 233, 248, 215);
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🔍 البحث
-            TextField(
-              decoration: InputDecoration(
-                hintText: currentLang == 'ar' ? "بحث" : "Search",
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 20,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(
-                    color: Colors.grey.withAlpha(100), // ← خفيف
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(
-                    color: Colors.grey.withAlpha(100),
-                    width: 1,
-                  ),
-                ),
-              ),
-            ),
+        final introTitleColor =
+            isDark ? Colors.white : const Color.fromARGB(255, 15, 75, 17);
+        final introBodyColor =
+            isDark ? Colors.white70 : const Color.fromARGB(255, 15, 75, 17);
 
-            const SizedBox(height: 10),
-
-            // 📂 التصنيفات
-            Text(
-              currentLang == 'ar' ? "التصنيفات" : "Categories",
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            centerTitle: false,
+            surfaceTintColor: Colors.transparent,
+            title: Text(
+              lang == 'ar'
+                  ? "ابحث عن حلول لصحة نباتاتك"
+                  : "Find solutions for your plants",
               style: theme.textTheme.bodyLarge,
             ),
-            const SizedBox(height: 10),
+            actions: [
+              IconButton(
+                tooltip: lang == 'ar' ? 'تغيير اللغة' : 'Change language',
+                onPressed: () async {
+                  final next = (lang == 'ar') ? 'en' : 'ar';
+                  await RuntimeSettings.setLanguage(next);
+                },
+                icon: Icon(Icons.language, color: AppTheme.titleTheme),
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 🔍 البحث (دارك مود مضبوط)
+                TextField(
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white70 : null,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: lang == 'ar' ? "بحث" : "Search",
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.grey,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    filled: true,
+                    fillColor: theme.cardColor, // ✅ مهم
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 20,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.grey.withOpacity(0.25),
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(
+                        color: cs.primary.withOpacity(0.55),
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
 
-            // SizedBox(
-            //   height: 90,
-            //   child: ListView.separated(
-            //     scrollDirection: Axis.horizontal,
-            //     physics: const BouncingScrollPhysics(),
-            //     itemCount: items.length,
-            //     itemBuilder: (context, index) {
-            //       return InkWell(
-            //         onTap: () {
-            //           Navigator.push(
-            //             context,
-            //             MaterialPageRoute(
-            //               builder: (_) => CategoryScreen(
-            //                 categoryTitle: items[index][0],
-            //                 categoryImage: items[index][1],
-            //               ),
-            //             ),
-            //           );
-            //         },
-            //         child: _CategoryItem(items[index][0], items[index][1]),
-            //       );
-            //     },
-            //     separatorBuilder: (_, __) => const SizedBox(width: 6),
-            //   ),
-            // ),
-            SizedBox(
-              height: 110,
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _categoriesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No Data"));
-                  }
+                const SizedBox(height: 10),
 
-                  final categories = snapshot.data!;
+                // 📂 التصنيفات
+                Text(
+                  lang == 'ar' ? "التصنيفات" : "Categories",
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 10),
 
-                  return ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final item = categories[index];
+                SizedBox(
+                  height: 110,
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: DatabaseHelper.instance.getCategories(lang),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                          child: Text(lang == 'ar' ? "لا توجد بيانات" : "No Data"),
+                        );
+                      }
 
-                      return InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryScreen(
-                                categoryTitle: item['name'],
-                                categoryCode: item['code'],
-                                categoryImage:
-                                    "assets/category_icons/${item['icon']}",
-                              ),
-                            ),
+                      final categories = snapshot.data!;
+                      return ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: categories.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final item = categories[index];
+                          final img = "assets/category_icons/${item['icon']}";
+
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CategoryScreen(
+                                    categoryTitle: item['name'],
+                                    categoryCode: item['code'],
+                                    categoryImage: img,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: _CategoryItem(item['name'], img),
                           );
                         },
-                        child: _CategoryItem(
-                          item['name'],
-                          "assets/category_icons/${item['icon']}",
-                        ),
                       );
                     },
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // 🟩 بطاقة التعريف
-            Container(
-              padding: const EdgeInsets.only(right: 15),
-              decoration: BoxDecoration(
-                // This is for shadow effect niga hahahaha :)
-                // boxShadow: [
-                //   BoxShadow(
-                //     color: Colors.black.withAlpha(0), // 0–255
-                //     blurRadius: 12,
-                //     spreadRadius: 1,
-                //     offset: const Offset(0, 0),
-                //   ),
-                // ],
-                color: const Color.fromARGB(255, 233, 248, 215),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        //const SizedBox(height: 16),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "صحة نباتاتك هي مهمتنا",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(255, 15, 75, 17),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color.fromARGB(255, 15, 75, 17),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // child: Text(
-                    //   "صحة نباتاتك هي مهمتنا\n\n"
-                    //   "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
-                    //   style: const TextStyle(fontSize: 14),
-                    // ),
                   ),
-                  const SizedBox(width: 10),
-                  Image.asset("assets/images/plant.png", height: 150),
-                ],
-              ),
-            ),
+                ),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 10),
 
-            // ⚠️ المشاكل الشائعة
-            Text("مشاكل شائعة", style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 10),
+                // 🟩 بطاقة التعريف (✅ دارك مود مضبوط)
+                Container(
+                  padding: const EdgeInsets.only(right: 15),
+                  decoration: BoxDecoration(
+                    color: introCardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                lang == 'ar'
+                                    ? "صحة نباتاتك هي مهمتنا"
+                                    : "Your plants’ health is our mission",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: introTitleColor,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                lang == 'ar'
+                                    ? "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض."
+                                    : "Send a plant photo to detect whether it’s healthy or infected, with disease info.",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: introBodyColor,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Image.asset("assets/images/plant.png", height: 150),
+                    ],
+                  ),
+                ),
 
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.9,
-              children: const [
-                _ProblemCard(
-                  "اصفرار الأوراق",
-                  "assets/images/yellow.jpg",
-                  "نبات الياسمين",
+                const SizedBox(height: 15),
+
+                Text(
+                  lang == 'ar' ? "مشاكل شائعة" : "Common problems",
+                  style: theme.textTheme.bodyLarge,
                 ),
-                _ProblemCard(
-                  "احتراق الأطراف",
-                  "assets/images/brown.jpg",
-                  "نبات السجاد",
+                const SizedBox(height: 10),
+
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.9,
+                  children: const [
+                    _ProblemCard("اصفرار الأوراق", "assets/images/yellow.jpg", "نبات الياسمين"),
+                    _ProblemCard("احتراق الأطراف", "assets/images/brown.jpg", "نبات السجاد"),
+                    _ProblemCard('بقع على الاوراق', "assets/images/leaf_spot.jpg", "نبات الورود"),
+                    _ProblemCard('ذبول الاوراق', "assets/images/wilting.jpg", "نبات الزيتون"),
+                  ],
                 ),
-                _ProblemCard(
-                  'بقع على الاوراق',
-                  "assets/images/leaf_spot.jpg",
-                  "نبات الورود",
-                ),
-                _ProblemCard(
-                  'ذبول الاوراق',
-                  "assets/images/wilting.jpg",
-                  "نبات الزيتون",
-                ),
-                // ... البقية
+
+                const SizedBox(height: 50),
               ],
             ),
-            SizedBox(height: 50),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -291,7 +250,7 @@ class _CategoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 90, // ⭐ مهم جدًا
+      width: 90,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -310,22 +269,26 @@ class _CategoryItem extends StatelessWidget {
   }
 }
 
+/// ✅ هذا أهم تعديل: لون كارد المشاكل الشائعة يتبع الثيم
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
-  final String plantName; // اسم النبات الذي سيمرر للشاشة التالية فقط
+  final String plantName;
 
   const _ProblemCard(this.title, this.image, this.plantName);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.backraoundCard,
+        color: theme.cardColor, // ✅ بدل AppTheme.backraoundCard
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(30),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.12),
             blurRadius: 12,
             spreadRadius: 1,
             offset: const Offset(0, 0),
@@ -333,19 +296,17 @@ class _ProblemCard extends StatelessWidget {
         ],
       ),
       child: Material(
-        // أضفنا Material هنا ليعمل تأثير InkWell بشكل صحيح
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          // داخل ويدجت _ProblemCard في خاصية onTap:
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => DiseaseDetailsScreen(
-                  diseseTitle: title, // يمرر لـ diseseTitle
-                  diseaseImage: image, // يمرر لـ diseaseImage
-                  plantName: plantName, // يمرر لـ plantName
+                  diseseTitle: title,
+                  diseaseImage: image,
+                  plantName: plantName,
                 ),
               ),
             );
@@ -354,9 +315,7 @@ class _ProblemCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.asset(
                   image,
                   height: 145,
@@ -368,14 +327,12 @@ class _ProblemCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.titleTheme,
+                    color:AppTheme.titleTheme,
                   ),
                 ),
               ),
-              // اسم النبات موجود في الكود لكن لا يوجد ويدجت Text تعرضه هنا
             ],
           ),
         ),

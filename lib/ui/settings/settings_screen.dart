@@ -34,15 +34,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _noti = v);
   }
 
-  void _about() {
+  void _about({required bool isAr}) {
     showAboutDialog(
       context: context,
       applicationName: 'Plant Doctor',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.local_florist),
-      children: const [
-        SizedBox(height: 8),
-        Text('تطبيق لتشخيص أمراض النباتات واقتراح العلاجات.'),
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          isAr
+              ? 'تطبيق لتشخيص أمراض النباتات واقتراح العلاجات.'
+              : 'An app to diagnose plant diseases and suggest treatments.',
+        ),
       ],
     );
   }
@@ -53,29 +57,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const _CurvedHeaderImage(
-            imagePath: 'assets/images/image.png',
-            height: 200,
-          ),
+    return AnimatedBuilder(
+      animation: Listenable.merge([RuntimeSettings.locale, RuntimeSettings.themeMode]),
+      builder: (_, __) {
+        final code = RuntimeSettings.locale.value.languageCode;
+        final isAr = code == 'ar';
+        final isDark = RuntimeSettings.themeMode.value == ThemeMode.dark;
 
-          const SizedBox(height: 16),
+        return Scaffold(
+          body: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              const _CurvedHeaderImage(
+                imagePath: 'assets/images/image.png',
+                height: 200,
+              ),
+              const SizedBox(height: 16),
 
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                AnimatedBuilder(
-                  animation: RuntimeSettings.locale,
-                  builder: (_, __) {
-                    final code = RuntimeSettings.locale.value.languageCode;
-                    return _tile(
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // 🌐 اللغة
+                    _tile(
                       icon: Icons.language_outlined,
-                      title: 'اللغة',
-                      subtitle: code == 'ar' ? 'العربية' : 'English',
+                      title: isAr ? 'اللغة' : 'Language',
+                      subtitle: isAr
+                          ? (code == 'ar' ? 'العربية' : 'الإنجليزية')
+                          : (code == 'ar' ? 'Arabic' : 'English'),
                       onTap: () {
                         showModalBottomSheet(
                           context: context,
@@ -89,9 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   groupValue: code,
                                   title: const Text('العربية'),
                                   onChanged: (v) async {
-                                    if (v != null) {
-                                      await RuntimeSettings.setLanguage(v);
-                                    }
+                                    if (v != null) await RuntimeSettings.setLanguage(v);
                                     if (ctx.mounted) Navigator.pop(ctx);
                                   },
                                 ),
@@ -100,9 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   groupValue: code,
                                   title: const Text('English'),
                                   onChanged: (v) async {
-                                    if (v != null) {
-                                      await RuntimeSettings.setLanguage(v);
-                                    }
+                                    if (v != null) await RuntimeSettings.setLanguage(v);
                                     if (ctx.mounted) Navigator.pop(ctx);
                                   },
                                 ),
@@ -112,44 +117,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
 
-                AnimatedBuilder(
-                  animation: RuntimeSettings.themeMode,
-                  builder: (_, __) {
-                    final isDark =
-                        RuntimeSettings.themeMode.value == ThemeMode.dark;
-                    return _tile(
+                    // 🌙 الوضع الليلي
+                    _tile(
                       icon: Icons.dark_mode_outlined,
-                      title: 'الوضع الليلي',
+                      title: isAr ? 'الوضع الليلي' : 'Dark mode',
                       trailing: Switch(
                         value: isDark,
                         onChanged: (v) => RuntimeSettings.setDark(v),
                       ),
                       onTap: () {},
-                    );
-                  },
-                ),
+                    ),
 
-                _tile(
-                  icon: Icons.notifications_none,
-                  title: 'الإشعارات',
-                  trailing: Switch(value: _noti, onChanged: _setNoti),
-                  onTap: () {},
-                ),
+                    // 🔔 الإشعارات
+                    _tile(
+                      icon: Icons.notifications_none,
+                      title: isAr ? 'الإشعارات' : 'Notifications',
+                      trailing: Switch(value: _noti, onChanged: _setNoti),
+                      onTap: () {},
+                    ),
 
-                _tile(
-                  icon: Icons.info_outline,
-                  title: 'حول التطبيق',
-                  onTap: _about,
+                    // ℹ️ حول التطبيق
+                    _tile(
+                      icon: Icons.info_outline,
+                      title: isAr ? 'حول التطبيق' : 'About',
+                      onTap: () => _about(isAr: isAr),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -187,7 +188,7 @@ class _CurvedHeaderImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipPath(
-      clipper: const _OvalBottomClipper(curve: 60), // ✅ غيّر الرقم إذا تريد
+      clipper: const _OvalBottomClipper(curve: 60),
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -197,7 +198,6 @@ class _CurvedHeaderImage extends StatelessWidget {
   }
 }
 
-/// ✅ هذا يعطي شكل بيضاوي ناعم من الأسفل (بدون خط مستقيم)
 class _OvalBottomClipper extends CustomClipper<Path> {
   final double curve;
 
@@ -210,13 +210,8 @@ class _OvalBottomClipper extends CustomClipper<Path> {
 
     final path = Path();
     path.lineTo(0, h - curve);
-
-    // قوس 1: يسار -> منتصف
     path.quadraticBezierTo(w * 0.25, h, w * 0.50, h);
-
-    // قوس 2: منتصف -> يمين
     path.quadraticBezierTo(w * 0.75, h, w, h - curve);
-
     path.lineTo(w, 0);
     path.close();
     return path;
