@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../categoray/categoray_screen.dart';
 import '../disease/disease_details_screen.dart';
+import '../../data/database/database_helper.dart';
 
 final List<List<String>> items = [
   ["نباتات ورقية", "assets/images/plant_leaf.jpg"],
@@ -12,8 +13,22 @@ final List<List<String>> items = [
   ["أشجار", "assets/images/fruite.jpg"],
 ];
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String currentLang = 'ar';
+  late Future<List<Map<String, dynamic>>> _categoriesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoriesFuture = DatabaseHelper.instance.getCategories(currentLang);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,56 +39,44 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        centerTitle: false,
         backgroundColor: theme.scaffoldBackgroundColor,
+        centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        title: Padding(
-          padding: const EdgeInsets.only(right: 2),
-          child: Text(
-            "ابحث عن حلول لصحة نباتاتك",
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: cs.onSurface,
-            ),
-          ),
+        title: Text(
+          currentLang == 'ar'
+              ? "ابحث عن حلول لصحة نباتاتك"
+              : "Find solutions for your plants",
+          style: theme.textTheme.bodyLarge,
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(left: 2),
-            child: IconButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تغيير اللغة غير متوفر حالياً')),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                currentLang = (currentLang == 'ar') ? 'en' : 'ar';
+                _categoriesFuture = DatabaseHelper.instance.getCategories(
+                  currentLang,
                 );
-              },
-              icon: Icon(Icons.language, color: cs.onSurface),
-            ),
+              });
+            },
+
+            icon: Icon(Icons.language, color: AppTheme.titleTheme),
           ),
         ],
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 16, right: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 🔍 البحث
             TextField(
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: cs.onSurface,
-              ),
               decoration: InputDecoration(
-                hintText: "بحث",
-                hintStyle: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurface.withOpacity(0.55),
-                  fontSize: 14,
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: cs.onSurface.withOpacity(0.55),
-                ),
+                hintText: currentLang == 'ar' ? "بحث" : "Search",
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
-                // ✅ بدل Colors.white
-                fillColor: theme.cardColor,
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 20,
@@ -81,15 +84,15 @@ class HomeScreen extends StatelessWidget {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide(
-                    color: cs.onSurface.withOpacity(0.12),
+                    color: Colors.grey.withAlpha(100), // ← خفيف
                     width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide(
-                    color: cs.primary.withOpacity(0.55),
-                    width: 1.2,
+                    color: Colors.grey.withAlpha(100),
+                    width: 1,
                   ),
                 ),
               ),
@@ -99,34 +102,80 @@ class HomeScreen extends StatelessWidget {
 
             // 📂 التصنيفات
             Text(
-              "التصنيفات",
-              style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurface),
+              currentLang == 'ar' ? "التصنيفات" : "Categories",
+              style: theme.textTheme.bodyLarge,
             ),
             const SizedBox(height: 10),
 
+            // SizedBox(
+            //   height: 90,
+            //   child: ListView.separated(
+            //     scrollDirection: Axis.horizontal,
+            //     physics: const BouncingScrollPhysics(),
+            //     itemCount: items.length,
+            //     itemBuilder: (context, index) {
+            //       return InkWell(
+            //         onTap: () {
+            //           Navigator.push(
+            //             context,
+            //             MaterialPageRoute(
+            //               builder: (_) => CategoryScreen(
+            //                 categoryTitle: items[index][0],
+            //                 categoryImage: items[index][1],
+            //               ),
+            //             ),
+            //           );
+            //         },
+            //         child: _CategoryItem(items[index][0], items[index][1]),
+            //       );
+            //     },
+            //     separatorBuilder: (_, __) => const SizedBox(width: 6),
+            //   ),
+            // ),
             SizedBox(
-              height: 90,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  return InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CategoryScreen(
-                            categoryTitle: items[index][0],
-                            categoryImage: items[index][1],
-                          ),
+              height: 110,
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _categoriesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No Data"));
+                  }
+
+                  final categories = snapshot.data!;
+
+                  return ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final item = categories[index];
+
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CategoryScreen(
+                                categoryTitle: item['name'],
+                                categoryCode: item['code'],
+                                categoryImage:
+                                    "assets/category_icons/${item['icon']}",
+                              ),
+                            ),
+                          );
+                        },
+                        child: _CategoryItem(
+                          item['name'],
+                          "assets/category_icons/${item['icon']}",
                         ),
                       );
                     },
-                    child: _CategoryItem(items[index][0], items[index][1]),
                   );
                 },
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
               ),
             ),
 
@@ -136,21 +185,17 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.only(right: 15),
               decoration: BoxDecoration(
-                // ✅ بدل لون ثابت
-                color: theme.cardColor,
+                // This is for shadow effect niga hahahaha :)
+                // boxShadow: [
+                //   BoxShadow(
+                //     color: Colors.black.withAlpha(0), // 0–255
+                //     blurRadius: 12,
+                //     spreadRadius: 1,
+                //     offset: const Offset(0, 0),
+                //   ),
+                // ],
+                color: const Color.fromARGB(255, 233, 248, 215),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: cs.onSurface.withOpacity(0.06),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.20 : 0.08),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 0),
-                  ),
-                ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,25 +205,31 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        //const SizedBox(height: 16),
                         const SizedBox(height: 10),
-                        Text(
+                        const Text(
                           "صحة نباتاتك هي مهمتنا",
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: cs.onSurface,
+                            color: Color.fromARGB(255, 15, 75, 17),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
+                        const Text(
                           "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: cs.onSurface.withOpacity(0.75),
+                            color: Color.fromARGB(255, 15, 75, 17),
                           ),
                         ),
                       ],
                     ),
+                    // child: Text(
+                    //   "صحة نباتاتك هي مهمتنا\n\n"
+                    //   "أرسل صور النبات وسيتم تحديد ما إذا كان سليمًا أو مصابًا مع تقديم معلومات عن الأمراض.",
+                    //   style: const TextStyle(fontSize: 14),
+                    // ),
                   ),
                   const SizedBox(width: 10),
                   Image.asset("assets/images/plant.png", height: 150),
@@ -189,10 +240,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 15),
 
             // ⚠️ المشاكل الشائعة
-            Text(
-              "مشاكل شائعة",
-              style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurface),
-            ),
+            Text("مشاكل شائعة", style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 10),
 
             GridView.count(
@@ -223,10 +271,10 @@ class HomeScreen extends StatelessWidget {
                   "assets/images/wilting.jpg",
                   "نبات الزيتون",
                 ),
+                // ... البقية
               ],
             ),
-
-            const SizedBox(height: 50),
+            SizedBox(height: 50),
           ],
         ),
       ),
@@ -242,11 +290,8 @@ class _CategoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return SizedBox(
-      width: 90,
+      width: 90, // ⭐ مهم جدًا
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -257,9 +302,7 @@ class _CategoryItem extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurface.withOpacity(0.75),
-            ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -270,28 +313,19 @@ class _CategoryItem extends StatelessWidget {
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
-  final String plantName;
+  final String plantName; // اسم النبات الذي سيمرر للشاشة التالية فقط
 
   const _ProblemCard(this.title, this.image, this.plantName);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        // ✅ بدل AppTheme.backraoundCard الثابت
-        color: theme.cardColor,
+        color: AppTheme.backraoundCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cs.onSurface.withOpacity(0.06),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.20 : 0.10),
+            color: Colors.black.withAlpha(30),
             blurRadius: 12,
             spreadRadius: 1,
             offset: const Offset(0, 0),
@@ -299,17 +333,19 @@ class _ProblemCard extends StatelessWidget {
         ],
       ),
       child: Material(
+        // أضفنا Material هنا ليعمل تأثير InkWell بشكل صحيح
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
+          // داخل ويدجت _ProblemCard في خاصية onTap:
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => DiseaseDetailsScreen(
-                  diseseTitle: title,
-                  diseaseImage: image,
-                  plantName: plantName,
+                  diseseTitle: title, // يمرر لـ diseseTitle
+                  diseaseImage: image, // يمرر لـ diseaseImage
+                  plantName: plantName, // يمرر لـ plantName
                 ),
               ),
             );
@@ -332,14 +368,14 @@ class _ProblemCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: Text(
                   title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    // ✅ بدل AppTheme.titleTheme الثابت
-                    color: cs.onSurface,
+                    color: AppTheme.titleTheme,
                   ),
                 ),
               ),
+              // اسم النبات موجود في الكود لكن لا يوجد ويدجت Text تعرضه هنا
             ],
           ),
         ),

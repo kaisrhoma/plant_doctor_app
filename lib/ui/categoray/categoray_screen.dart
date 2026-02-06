@@ -12,38 +12,40 @@ final List<Map<String, String>> plantList = [
   {
     "name": "زهور الربيع",
     "species": "نباتات مزهرة",
-    "image": "assets/images/flowers.jpg",
+    "image": "assets/images/plant_leaf.jpg",
   },
   {
     "name": "أشجار الفاكهة",
     "species": "أشجار مثمرة",
-    "image": "assets/images/fruite.jpg",
+    "image": "assets/images/plant_leaf.jpg",
   },
   {
     "name": "خضروات عضوية",
     "species": "محاصيل شتوية",
-    "image": "assets/images/vegetables.jpg",
+    "image": "assets/images/plant_leaf.jpg",
   },
   {
     "name": "حبوب كاملة",
     "species": "محاصيل حقلية",
-    "image": "assets/images/fruite.jpg",
+    "image": "assets/images/plant_leaf.jpg",
   },
   {
     "name": "أشجار حرجية",
     "species": "نباتات برية",
-    "image": "assets/images/fruite.jpg",
+    "image": "assets/images/plant_leaf.jpg",
   },
 ];
 
 class CategoryScreen extends StatelessWidget {
   final String categoryTitle;
   final String categoryImage;
+  final String categoryCode; // رمز الفئة لجلب البيانات من القاعدة
 
   const CategoryScreen({
     super.key,
     required this.categoryTitle,
     required this.categoryImage,
+    required this.categoryCode,
   });
 
   @override
@@ -66,10 +68,7 @@ class CategoryScreen extends StatelessWidget {
               // عنوان الفئة
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  categoryTitle,
-                  style: theme.textTheme.bodyLarge,
-                ),
+                child: Text(categoryTitle, style: theme.textTheme.bodyLarge),
               ),
 
               const SizedBox(height: 20),
@@ -101,10 +100,11 @@ class CategoryScreen extends StatelessWidget {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide(
-                        color: (isDark
-                                ? Colors.white.withOpacity(0.12)
-                                : Colors.grey.withOpacity(0.25))
-                            .withOpacity(1),
+                        color:
+                            (isDark
+                                    ? Colors.white.withOpacity(0.12)
+                                    : Colors.grey.withOpacity(0.25))
+                                .withOpacity(1),
                         width: 1,
                       ),
                     ),
@@ -265,12 +265,17 @@ class PlantCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _buildStatusIcon(Icons.wb_sunny_outlined, Colors.orange),
+                        _buildStatusIcon(
+                          Icons.wb_sunny_outlined,
+                          Colors.orange,
+                        ),
                         const SizedBox(width: 8),
                         _buildStatusIcon(Icons.eco_outlined, Colors.green),
                         const SizedBox(width: 8),
                         _buildStatusIcon(
-                            Icons.water_drop_outlined, Colors.blue),
+                          Icons.water_drop_outlined,
+                          Colors.blue,
+                        ),
                       ],
                     ),
                   ],
