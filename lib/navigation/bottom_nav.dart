@@ -22,72 +22,88 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       extendBody: true,
-      extendBodyBehindAppBar: true,
       body: _screens[_currentIndex],
 
       // 📸 زر الكاميرا الدائري
       floatingActionButton: SizedBox(
-        width: 60,
-        height: 60,
+        width: 65,
+        height: 65,
         child: FloatingActionButton(
           shape: const CircleBorder(),
           backgroundColor: AppTheme.primaryGreen,
-          elevation: 8,
-          onPressed: () {
-            setState(() => _currentIndex = 1);
-          },
-          child: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
+          elevation: 4,
+          onPressed: () => setState(() => _currentIndex = 1),
+          child: const Icon(Icons.camera_alt, size: 30, color: Colors.white),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        height: 55.0,
-
-        // ✅ الحل: إذا كان الوضع داكن، استخدم لون داكن، وإلا استخدم لونك الفاتح
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1E1E1E) // لون رمادي غامق للوضع الليلي
-            : AppTheme.backraoundCard, // لونك الأخضر الفاتح للوضع العادي
-        elevation: 0, // إزالة الخط والظل
-        // surfaceTintColor: Colors
-        //     .transparent, // ضروري جداً في Material 3 لمنع تلوين الشريط تلقائياً
-        notchMargin: 8,
-        child: SizedBox(
-          height: 30, // أقل ارتفاع وأكثر حداثة
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(
-                  Icons.home,
-                  size: 28, // ⬆️ تكبير الأيقونة
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.4)
+                  : Colors.black.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: true,
+          child: BottomAppBar(
+            clipBehavior: Clip.antiAlias,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8.0,
+            height: 55.0,
+            color: isDark ? const Color(0xFF1E1E1E) : theme.cardColor,
+            elevation: 0,
+            // ✅ إزالة الـ Padding الافتراضي للـ BottomAppBar لتوسيع منطقة النقر
+            padding: EdgeInsets.zero,
+            child: Row(
+              children: [
+                // 🏠 زر الرئيسية - مساحة نقر كاملة
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _currentIndex = 0),
+                    child: Center(
+                      child: Icon(
+                        Icons.home,
+                        size: 28,
+                        color: _currentIndex == 0
+                            ? AppTheme.primaryGreen
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-                color: _currentIndex == 0 ? AppTheme.primaryGreen : Colors.grey,
-                onPressed: () {
-                  setState(() => _currentIndex = 0);
-                },
-              ),
 
-              const SizedBox(width: 40), // مكان زر الكاميرا
+                // ⭕ فراغ زر الكاميرا (يجب أن يتناسب مع عرض الـ FAB)
+                const SizedBox(width: 80),
 
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(
-                  Icons.settings,
-                  size: 28, // ⬆️ تكبير الأيقونة
+                // ⚙️ زر الإعدادات - مساحة نقر كاملة
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _currentIndex = 2),
+                    child: Center(
+                      child: Icon(
+                        Icons.settings,
+                        size: 28,
+                        color: _currentIndex == 2
+                            ? AppTheme.primaryGreen
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-                color: _currentIndex == 2 ? AppTheme.primaryGreen : Colors.grey,
-                onPressed: () {
-                  setState(() => _currentIndex = 2);
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

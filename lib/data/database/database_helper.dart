@@ -289,4 +289,38 @@ class DatabaseHelper {
       [langCode, limit],
     );
   }
+
+  Future<List<Map<String, dynamic>>> searchDiseases({
+    required String query,
+    required String langCode,
+  }) async {
+    final db = await database;
+
+    return await db.rawQuery(
+      '''
+    SELECT DISTINCT
+      d.code AS disease_code,
+      d.plant_code,
+      dt.name AS disease_name,
+      di.image_path
+    FROM diseases d
+    JOIN disease_translations dt
+      ON d.code = dt.disease_code
+     AND d.plant_code = dt.plant_code
+     AND dt.lang_code = ?
+    LEFT JOIN disease_images di
+      ON d.code = di.disease_code
+     AND d.plant_code = di.plant_code
+    JOIN plant_translations pt
+      ON pt.plant_code = d.plant_code
+     AND pt.lang_code = ?
+    WHERE
+      dt.name LIKE ?
+      OR dt.description LIKE ?
+      OR pt.name LIKE ?
+    ORDER BY dt.name
+    ''',
+      [langCode, langCode, '%$query%', '%$query%', '%$query%'],
+    );
+  }
 }

@@ -50,14 +50,16 @@ class PlantDoctorApp extends StatelessWidget {
           value: SystemUiOverlayStyle(
             systemNavigationBarColor: isDarkMode
                 ? const Color(0xFF1E1E1E)
-                : AppTheme.backraoundCard,
-            systemNavigationBarIconBrightness:
-                isDarkMode ? Brightness.light : Brightness.dark,
+                : Colors.white,
+            systemNavigationBarIconBrightness: isDarkMode
+                ? Brightness.light
+                : Brightness.dark,
             systemNavigationBarDividerColor: Colors.transparent,
             systemNavigationBarContrastEnforced: false,
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness:
-                isDarkMode ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: isDarkMode
+                ? Brightness.light
+                : Brightness.dark,
           ),
           child: MaterialApp(
             debugShowCheckedModeBanner: false,

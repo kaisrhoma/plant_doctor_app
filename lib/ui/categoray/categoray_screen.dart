@@ -22,14 +22,55 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen> {
   late Future<List<Map<String, dynamic>>> _plantsFuture;
+  List<Map<String, dynamic>> _allPlants = []; // المخزن الأصلي
+  List<Map<String, dynamic>> _displayPlants = []; // ما يتم عرضه حالياً
+  bool _isLoading = true; // مؤشر للتحميل لأول مرة فقط
+
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _loadData() async {
+    setState(() => _isLoading = true);
+    final plants = await DatabaseHelper.instance.getPlantsByCategoryCode(
       categoryCode: widget.categoryCode,
       langCode: RuntimeSettings.locale.value.languageCode,
     );
+    setState(() {
+      _allPlants = plants;
+      _displayPlants = plants;
+      _isLoading = false;
+    });
+  }
+
+  void _runFilter(String enteredKeyword) {
+    List<Map<String, dynamic>> results = [];
+    if (enteredKeyword.isEmpty) {
+      results = _allPlants;
+    } else {
+      results = _allPlants
+          .where(
+            (plant) => plant["plant_name"].toString().toLowerCase().contains(
+              enteredKeyword.toLowerCase(),
+            ),
+          )
+          .toList();
+    }
+    setState(() {
+      _displayPlants = results;
+    });
   }
 
   @override
@@ -38,180 +79,170 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return ValueListenableBuilder(
-      valueListenable: RuntimeSettings.locale,
-      builder: (_, loc, __) {
-        final lang = loc.languageCode;
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: ValueListenableBuilder(
+        valueListenable: RuntimeSettings.locale,
+        builder: (_, loc, __) {
+          final lang = loc.languageCode;
 
-        // 🔁 لو تغيرت اللغة، نعيد تحميل النباتات
-        _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
-          categoryCode: widget.categoryCode,
-          langCode: lang,
-        );
-        return Scaffold(
-          // ✅ بدل Colors.white
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: Stack(
-            children: [
-              ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  CurvedHeaderImage(
-                    imagePath: widget.categoryImage,
-                    height: 220,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // عنوان الفئة
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      widget.categoryTitle,
-                      style: theme.textTheme.bodyLarge,
+          // 🔁 لو تغيرت اللغة، نعيد تحميل النباتات
+          _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
+            categoryCode: widget.categoryCode,
+            langCode: lang,
+          );
+          return Scaffold(
+            // ✅ بدل Colors.white
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: Stack(
+              children: [
+                ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    CurvedHeaderImage(
+                      imagePath: widget.categoryImage,
+                      height: 220,
                     ),
-                  ),
+                    const SizedBox(height: 20),
 
-                  const SizedBox(height: 20),
-
-                  // 🔍 البحث
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: TextField(
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark ? Colors.white70 : null,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: lang == 'ar'
-                            ? "ابحث عن نباتك"
-                            : "Find your plants",
-                        hintStyle: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.grey,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: isDark ? Colors.white54 : Colors.grey,
-                        ),
-                        filled: true,
-                        // ✅ يتبع الثيم
-                        fillColor: theme.cardColor,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 20,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide(
-                            color:
-                                (isDark
-                                        ? Colors.white.withOpacity(0.12)
-                                        : Colors.grey.withOpacity(0.25))
-                                    .withOpacity(1),
-                            width: 1,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(
-                            color: cs.primary.withOpacity(0.55),
-                            width: 1.2,
-                          ),
-                        ),
+                    // عنوان الفئة
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        widget.categoryTitle,
+                        style: theme.textTheme.bodyLarge,
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _plantsFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return Center(
-                          child: Text(
-                            lang == 'ar'
-                                ? "لا توجد نباتات"
-                                : "No plants available",
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark ? Colors.white54 : Colors.grey,
+                    // 🔍 البحث
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        onChanged: (value) => _runFilter(value),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isDark ? Colors.white70 : null,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: lang == 'ar'
+                              ? "ابحث عن نباتك"
+                              : "Find your plants",
+                          hintStyle: TextStyle(
+                            color: isDark ? Colors.white54 : Colors.grey,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: isDark ? Colors.white54 : Colors.grey,
+                          ),
+                          filled: true,
+                          // ✅ يتبع الثيم
+                          fillColor: theme.cardColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 20,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(
+                              color:
+                                  (isDark
+                                          ? Colors.white.withOpacity(0.12)
+                                          : Colors.grey.withOpacity(0.2))
+                                      .withOpacity(0.40),
+                              width: 1,
                             ),
                           ),
-                        );
-                      }
-
-                      final plants = snapshot.data!;
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: plants.length,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemBuilder: (context, index) {
-                          final plant = plants[index];
-
-                          return PlantCard(
-                            name: plant['plant_name'],
-                            species: plant['plant_description'] ?? '',
-                            imagePath:
-                                plant['image_path'] ?? 'assets/images/spl.png',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PlantDetailsScreen(
-                                    plant_code: plant['plant_code'],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-                  Text(
-                    lang == 'ar'
-                        ? 'لا توجد نباتات أخرى في هذه الفئة.'
-                        : 'No more plants in this category.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark ? Colors.white54 : Colors.grey,
-                    ),
-                  ),
-
-                  const SizedBox(height: 100),
-                ],
-              ),
-
-              // زر الرجوع
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        // ✅ متوافق مع الدارك
-                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.40),
-                        shape: BoxShape.circle,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(
+                              color: cs.primary.withOpacity(0.55),
+                              width: 1.2,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                  ),
+
+                    const SizedBox(height: 20),
+
+                    // ✅ استبدال FutureBuilder بـ Logic بسيط
+                    _buildPlantsList(theme, isDark, lang),
+
+                    const SizedBox(height: 100),
+                  ],
                 ),
+
+                // زر الرجوع (نفس كودك السابق)
+                _buildBackButton(isDark),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // دالة بناء القائمة (بدون FutureBuilder)
+  Widget _buildPlantsList(ThemeData theme, bool isDark, String lang) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_displayPlants.isEmpty) {
+      return Center(
+        child: Text(
+          lang == 'ar' ? "لا توجد نتائج" : "No results found",
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _displayPlants.length,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemBuilder: (context, index) {
+        final plant = _displayPlants[index];
+        return PlantCard(
+          name: plant['plant_name'],
+          species: plant['plant_description'] ?? '',
+          imagePath: plant['image_path'] ?? 'assets/images/spl.png',
+          onTap: () {
+            _searchFocusNode.unfocus();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    PlantDetailsScreen(plant_code: plant['plant_code']),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildBackButton(bool isDark) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: InkWell(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(isDark ? 0.35 : 0.40),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+        ),
+      ),
     );
   }
 }

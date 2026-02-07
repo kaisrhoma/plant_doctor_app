@@ -13,16 +13,56 @@ class DiseasePlantScreen extends StatefulWidget {
 }
 
 class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
-  String _lang = 'ar';
-  late Future<List<Map<String, dynamic>>> _diseasesFuture;
+  List<Map<String, dynamic>> _allDiseases = [];
+  List<Map<String, dynamic>> _displayDiseases = [];
+  bool _isLoading = true;
+
+  final TextEditingController _searchController = TextEditingController();
+  // 1. تعريف الـ FocusNode
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _diseasesFuture = DatabaseHelper.instance.getDiseaseNamesWithImages(
+  void initState() {
+    super.initState();
+    _loadDiseases();
+  }
+
+  @override
+  void dispose() {
+    // 2. التخلص من الـ Nodes والمتحكمات
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _loadDiseases() async {
+    setState(() => _isLoading = true);
+    final diseases = await DatabaseHelper.instance.getDiseaseNamesWithImages(
       plantCode: widget.plantCode,
       langCode: RuntimeSettings.locale.value.languageCode,
     );
+    setState(() {
+      _allDiseases = diseases;
+      _displayDiseases = diseases;
+      _isLoading = false;
+    });
+  }
+
+  void _runFilter(String enteredKeyword) {
+    setState(() {
+      if (enteredKeyword.isEmpty) {
+        _displayDiseases = _allDiseases;
+      } else {
+        _displayDiseases = _allDiseases
+            .where(
+              (disease) => disease["disease_name"]
+                  .toString()
+                  .toLowerCase()
+                  .contains(enteredKeyword.toLowerCase()),
+            )
+            .toList();
+      }
+    });
   }
 
   @override
@@ -34,143 +74,138 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
     return ValueListenableBuilder(
       valueListenable: RuntimeSettings.locale,
       builder: (_, loc, __) {
-        _lang = loc.languageCode;
+        final lang = loc.languageCode;
 
         return Scaffold(
-          // ✅ بدل Colors.white
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(
-              _lang == 'ar' ? "أمراض النبات" : "Plant Diseases",
+              lang == 'ar' ? "أمراض النبات" : "Plant Diseases",
               style: theme.textTheme.bodyLarge,
             ),
-
             centerTitle: true,
-            // ✅ خلي appbar يتبع الثيم
             backgroundColor: theme.scaffoldBackgroundColor,
             surfaceTintColor: Colors.transparent,
-            foregroundColor: cs.onSurface,
             elevation: 0,
           ),
-          body: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 20),
+          body: GestureDetector(
+            // إغلاق الكيبورد عند الضغط في أي مكان فارغ
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const SizedBox(height: 20),
 
-              // 🔍 البحث
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: TextField(
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurface,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: _lang == 'ar'
-                        ? "ابحث عن مرض"
-                        : "Search for a disease",
-                    hintStyle: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurface.withOpacity(0.55),
-                      fontSize: 14,
+                // 🔍 مربع البحث مع الفوكس
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode, // ربط النود هنا
+                    onChanged: _runFilter,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurface,
                     ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: cs.onSurface.withOpacity(0.55),
-                    ),
-                    filled: true,
-                    // ✅ بدل Colors.white
-                    fillColor: theme.cardColor,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 20,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(
-                        color: cs.onSurface.withOpacity(0.12),
-                        width: 1,
+                    decoration: InputDecoration(
+                      hintText: lang == 'ar'
+                          ? "ابحث عن مرض"
+                          : "Search for a disease",
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey,
+                        fontSize: 14,
                       ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(
-                        color: cs.primary.withOpacity(0.55),
-                        width: 1.2,
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
+                      filled: true,
+                      fillColor: theme.cardColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 20,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(
+                          color:
+                              (isDark
+                                      ? Colors.white.withOpacity(0.12)
+                                      : Colors.grey.withOpacity(0.2))
+                                  .withOpacity(0.40),
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(
+                          color: cs.primary.withOpacity(0.55),
+                          width: 1.2,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: _diseasesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                _buildDiseaseContent(theme, cs, lang),
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _lang == 'ar'
-                            ? "لا توجد أمراض لهذا النبات"
-                            : "No diseases for this plant",
-                      ),
-                    );
-                  }
-
-                  final diseases = snapshot.data!;
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: diseases.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemBuilder: (context, index) {
-                      final disease = diseases[index];
-
-                      return DiseaseCard(
-                        title: disease['disease_name'],
-                        subtitle: _lang == 'ar'
-                            ? "اضغط لعرض التفاصيل"
-                            : "Tap to view details",
-                        imagePath:
-                            disease['image_path'] ??
-                            'assets/images/placeholder.png',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DiseaseDetailsScreen(
-                                diseaseCode: disease['disease_code'],
-                                plantCode: widget.plantCode,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-
-              // قائمة الأمراض
-              const SizedBox(height: 20),
-
-              Text(
-                _lang == 'ar'
-                    ? "لا توجد أمراض أخرى لهذا النبات."
-                    : "No more diseases for this plant.",
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurface.withOpacity(0.55),
-                ),
-              ),
-
-              const SizedBox(height: 100),
-            ],
+                const SizedBox(height: 100),
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDiseaseContent(ThemeData theme, ColorScheme cs, String lang) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_displayDiseases.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            lang == 'ar' ? "لا توجد نتائج بحث" : "No results found",
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurface.withOpacity(0.6),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _displayDiseases.length,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemBuilder: (context, index) {
+        final disease = _displayDiseases[index];
+
+        return DiseaseCard(
+          title: disease['disease_name'],
+          subtitle: lang == 'ar' ? "اضغط لعرض التفاصيل" : "Tap to view details",
+          imagePath: disease['image_path'] ?? 'assets/images/placeholder.png',
+          onTap: () {
+            // 3. إغلاق الفوكس قبل الانتقال للشاشة التالية
+            _searchFocusNode.unfocus();
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DiseaseDetailsScreen(
+                  diseaseCode: disease['disease_code'],
+                  plantCode: widget.plantCode,
+                  showPlantLink:
+                      false, // هنا نمنع ظهور الزر لأننا جئنا من شاشة النبات أصلاً
+                ),
+              ),
+            );
+          },
         );
       },
     );

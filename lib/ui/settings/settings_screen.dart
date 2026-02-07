@@ -58,7 +58,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return AnimatedBuilder(
-      animation: Listenable.merge([RuntimeSettings.locale, RuntimeSettings.themeMode]),
+      animation: Listenable.merge([
+        RuntimeSettings.locale,
+        RuntimeSettings.themeMode,
+      ]),
       builder: (_, __) {
         final code = RuntimeSettings.locale.value.languageCode;
         final isAr = code == 'ar';
@@ -96,18 +99,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 RadioListTile<String>(
                                   value: 'ar',
                                   groupValue: code,
-                                  title: const Text('العربية'),
+                                  title: Text(
+                                    'العربية',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
                                   onChanged: (v) async {
-                                    if (v != null) await RuntimeSettings.setLanguage(v);
+                                    if (v != null)
+                                      await RuntimeSettings.setLanguage(v);
                                     if (ctx.mounted) Navigator.pop(ctx);
                                   },
                                 ),
                                 RadioListTile<String>(
                                   value: 'en',
                                   groupValue: code,
-                                  title: const Text('English'),
+                                  title: Text(
+                                    'English',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
                                   onChanged: (v) async {
-                                    if (v != null) await RuntimeSettings.setLanguage(v);
+                                    if (v != null)
+                                      await RuntimeSettings.setLanguage(v);
                                     if (ctx.mounted) Navigator.pop(ctx);
                                   },
                                 ),
@@ -165,8 +180,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title),
-        subtitle: subtitle != null ? Text(subtitle) : null,
+        title: Text(title, style: Theme.of(context).textTheme.bodyMedium),
+        subtitle: subtitle != null
+            ? Text(subtitle, style: Theme.of(context).textTheme.bodySmall)
+            : null,
         trailing: trailing ?? const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
