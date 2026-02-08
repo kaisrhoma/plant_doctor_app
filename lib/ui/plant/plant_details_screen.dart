@@ -16,6 +16,7 @@ class PlantDetailsScreen extends StatefulWidget {
 class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   late Future<Map<String, dynamic>?> _plantFuture;
   String _lang = 'ar';
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -33,13 +34,14 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
 
     return ValueListenableBuilder(
       valueListenable: RuntimeSettings.locale,
       builder: (_, loc, __) {
         _lang = loc.languageCode;
+
         return Scaffold(
-          // ✅ بدل Colors.white
           backgroundColor: theme.scaffoldBackgroundColor,
           body: CustomScrollView(
             slivers: [
@@ -64,7 +66,6 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                     },
                   ),
                 ),
-
                 leading: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: CircleAvatar(
@@ -94,21 +95,26 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                           _lang == "ar"
                               ? "لا توجد بيانات للنبات"
                               : "No data available for this plant",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: cs.onSurface,
+                          ),
                         ),
                       );
                     }
 
                     final plant = snapshot.data!;
+
                     return Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ✅ اللون فقط (بدون تغيير الحجم)
                           Text(
                             plant['plant_name'],
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.titleTheme,
+                              color: isDark ? Colors.white : AppTheme.titleTheme,
                             ),
                           ),
 
@@ -117,7 +123,6 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              // ✅ بدل Colors.green[50]
                               color: theme.cardColor,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
@@ -142,7 +147,6 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                                           : 'Not Specified'),
                                   Colors.orange,
                                 ),
-
                                 _buildDetailIcon(
                                   context,
                                   Icons.water_drop,
@@ -152,7 +156,6 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                                           : 'Not Specified'),
                                   Colors.blue,
                                 ),
-
                                 _buildDetailIcon(
                                   context,
                                   Icons.thermostat,
@@ -160,8 +163,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                                           plant['max_temp'] != null
                                       ? "${plant['min_temp']}°C - ${plant['max_temp']}°C"
                                       : (_lang == "ar"
-                                            ? "غير محددة"
-                                            : "Not Specified"),
+                                          ? "غير محددة"
+                                          : "Not Specified"),
                                   Colors.redAccent,
                                 ),
                               ],
@@ -175,44 +178,39 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                             _lang == 'ar' ? "المملكة" : "Kingdom",
                             plant['kingdom'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == 'ar' ? "الشعبة" : "Phylum",
                             plant['phylum'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == 'ar' ? "الطائفة" : "Class",
                             plant['class'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == 'ar' ? "الرتبة" : "Order",
                             plant['plant_order'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
-                            _lang == 'ar' ? "العائلة النباتية" : "Plant Family",
+                            _lang == 'ar'
+                                ? "العائلة النباتية"
+                                : "Plant Family",
                             plant['family'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == 'ar' ? "الجنس" : "Genus",
                             plant['genus'] ?? 'غير متوفر',
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == "ar" ? "الانتشار" : "Growth Regions",
                             plant['growth_regions'] ??
                                 (_lang == 'ar' ? 'غير متوفر' : 'Not Available'),
                           ),
-
                           _buildInfoSection(
                             context,
                             _lang == "ar" ? "طرق العناية" : "Care Tips",
@@ -221,18 +219,23 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
 
                           const SizedBox(height: 24),
 
+                          // ✅ اللون فقط
                           Text(
                             _lang == "ar" ? "عن النبات" : "About the Plant",
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.primaryGreen,
+                              color: isDark ? Colors.white : AppTheme.primaryGreen,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 12),
+
+                          // ✅ اللون فقط (بدون تغيير الحجم)
                           Text(
                             (plant['plant_description'] ?? '') +
                                 (plant['country_notes'] ?? ''),
-                            style: theme.textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark ? Colors.white70 : AppTheme.titleTheme,
+                            ),
                           ),
 
                           const SizedBox(height: 120),
@@ -293,20 +296,23 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ اللون فقط
           Text(
             title,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.primaryGreen,
+              color: isDark ? Colors.white : AppTheme.primaryGreen,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
+
           Text(
             content,
             style: theme.textTheme.bodySmall?.copyWith(
               color: isDark ? Colors.white70 : AppTheme.titleTheme,
             ),
           ),
+
           const Divider(height: 20),
         ],
       ),
@@ -323,7 +329,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return SizedBox(
-      width: 80, // 🔑 حدّد عرض ثابت (جرّب 55–70)
+      width: 80,
       child: Column(
         children: [
           Icon(icon, color: color, size: 28),

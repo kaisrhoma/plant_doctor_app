@@ -7,7 +7,7 @@ import '../../core/runtime_settings.dart';
 class CategoryScreen extends StatefulWidget {
   final String categoryTitle;
   final String categoryImage;
-  final String categoryCode; // رمز الفئة لجلب البيانات من القاعدة
+  final String categoryCode;
 
   const CategoryScreen({
     super.key,
@@ -21,18 +21,19 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  late Future<List<Map<String, dynamic>>> _plantsFuture;
-  List<Map<String, dynamic>> _allPlants = []; // المخزن الأصلي
-  List<Map<String, dynamic>> _displayPlants = []; // ما يتم عرضه حالياً
-  bool _isLoading = true; // مؤشر للتحميل لأول مرة فقط
+  List<Map<String, dynamic>> _allPlants = [];
+  List<Map<String, dynamic>> _displayPlants = [];
+  bool _isLoading = true;
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  String _lastLang = RuntimeSettings.locale.value.languageCode;
+
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(_lastLang);
   }
 
   @override
@@ -42,35 +43,41 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.dispose();
   }
 
-  void _loadData() async {
+  Future<void> _loadData(String lang) async {
     setState(() => _isLoading = true);
     final plants = await DatabaseHelper.instance.getPlantsByCategoryCode(
       categoryCode: widget.categoryCode,
-      langCode: RuntimeSettings.locale.value.languageCode,
+      langCode: lang,
     );
     setState(() {
       _allPlants = plants;
       _displayPlants = plants;
       _isLoading = false;
     });
+
+    // ✅ لو في بحث مكتوب، طبّقه مرة ثانية بعد التحميل
+    final q = _searchController.text.trim();
+    if (q.isNotEmpty) _runFilter(q);
   }
 
   void _runFilter(String enteredKeyword) {
-    List<Map<String, dynamic>> results = [];
-    if (enteredKeyword.isEmpty) {
+    final q = enteredKeyword.trim();
+    List<Map<String, dynamic>> results;
+
+    if (q.isEmpty) {
       results = _allPlants;
     } else {
       results = _allPlants
           .where(
-            (plant) => plant["plant_name"].toString().toLowerCase().contains(
-              enteredKeyword.toLowerCase(),
-            ),
+            (plant) => plant["plant_name"]
+                .toString()
+                .toLowerCase()
+                .contains(q.toLowerCase()),
           )
           .toList();
     }
-    setState(() {
-      _displayPlants = results;
-    });
+
+    setState(() => _displayPlants = results);
   }
 
   @override
@@ -86,13 +93,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
         builder: (_, loc, __) {
           final lang = loc.languageCode;
 
-          // 🔁 لو تغيرت اللغة، نعيد تحميل النباتات
-          _plantsFuture = DatabaseHelper.instance.getPlantsByCategoryCode(
-            categoryCode: widget.categoryCode,
-            langCode: lang,
-          );
+          // ✅ إعادة تحميل النباتات عند تغيير اللغة فقط
+          if (lang != _lastLang) {
+            _lastLang = lang;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _loadData(lang);
+            });
+          }
+
           return Scaffold(
-            // ✅ بدل Colors.white
             backgroundColor: theme.scaffoldBackgroundColor,
             body: Stack(
               children: [
@@ -105,12 +114,16 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // عنوان الفئة
+                    // ✅ عنوان الفئة (أبيض قوي + أكبر في الدارك)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
                         widget.categoryTitle,
-                        style: theme.textTheme.bodyLarge,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: isDark ? 20 : 18,
+                          color: isDark ? Colors.white : cs.onSurface,
+                        ),
                       ),
                     ),
 
@@ -122,9 +135,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       child: TextField(
                         controller: _searchController,
                         focusNode: _searchFocusNode,
-                        onChanged: (value) => _runFilter(value),
+                        onChanged: _runFilter,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark ? Colors.white70 : null,
+                          color: isDark ? Colors.white : cs.onSurface,
                         ),
                         decoration: InputDecoration(
                           hintText: lang == 'ar'
@@ -139,7 +152,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             color: isDark ? Colors.white54 : Colors.grey,
                           ),
                           filled: true,
-                          // ✅ يتبع الثيم
                           fillColor: theme.cardColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 10,
@@ -169,14 +181,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ✅ استبدال FutureBuilder بـ Logic بسيط
-                    _buildPlantsList(theme, isDark, lang),
+                    _buildPlantsList(theme, isDark, cs, lang),
 
                     const SizedBox(height: 100),
                   ],
                 ),
 
-                // زر الرجوع (نفس كودك السابق)
                 _buildBackButton(isDark),
               ],
             ),
@@ -186,8 +196,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  // دالة بناء القائمة (بدون FutureBuilder)
-  Widget _buildPlantsList(ThemeData theme, bool isDark, String lang) {
+  Widget _buildPlantsList(
+    ThemeData theme,
+    bool isDark,
+    ColorScheme cs,
+    String lang,
+  ) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -196,7 +210,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
       return Center(
         child: Text(
           lang == 'ar' ? "لا توجد نتائج" : "No results found",
-          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: isDark ? Colors.white70 : Colors.grey,
+          ),
         ),
       );
     }
@@ -247,7 +263,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 }
 
-// بطاقة النبات
 class PlantCard extends StatelessWidget {
   final String name;
   final String species;
@@ -265,12 +280,12 @@ class PlantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        // ✅ بدل Colors.white
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -281,6 +296,7 @@ class PlantCard extends StatelessWidget {
             offset: const Offset(0, 0),
           ),
         ],
+        border: Border.all(color: cs.onSurface.withOpacity(0.06), width: 1),
       ),
       child: InkWell(
         onTap: onTap,
@@ -308,33 +324,38 @@ class PlantCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ✅ اسم النبات: أبيض + أكبر في الدارك
                     Text(
                       name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark ? Colors.white70 : null,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isDark ? 15 : 14,
+                        color: isDark ? Colors.white : cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
+
+                    // ✅ الوصف: أبيض أهدى في الدارك
                     Text(
                       species,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark ? Colors.white54 : null,
+                        fontSize: isDark ? 12 : 12,
+                        color: isDark ? Colors.white70 : cs.onSurface.withOpacity(0.7),
+                        height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _buildStatusIcon(
-                          Icons.wb_sunny_outlined,
-                          Colors.orange,
-                        ),
+                        _buildStatusIcon(cs, Icons.wb_sunny_outlined, Colors.orange),
                         const SizedBox(width: 8),
-                        _buildStatusIcon(Icons.eco_outlined, Colors.green),
+                        _buildStatusIcon(cs, Icons.eco_outlined, Colors.green),
                         const SizedBox(width: 8),
-                        _buildStatusIcon(
-                          Icons.water_drop_outlined,
-                          Colors.blue,
-                        ),
+                        _buildStatusIcon(cs, Icons.water_drop_outlined, Colors.blue),
                       ],
                     ),
                   ],
@@ -347,12 +368,13 @@ class PlantCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusIcon(IconData icon, Color color) {
+  Widget _buildStatusIcon(ColorScheme cs, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: color.withOpacity(0.55), width: 1.5),
+        color: cs.surface.withOpacity(0.20),
       ),
       child: Icon(icon, size: 14, color: color),
     );

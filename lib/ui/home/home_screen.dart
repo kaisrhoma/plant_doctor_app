@@ -124,7 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 lang == 'ar'
                     ? "ابحث عن حلول لصحة نباتاتك"
                     : "Find solutions for your plants",
-                style: theme.textTheme.bodyLarge,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: isDark ? Colors.white : AppTheme.titleTheme,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
               actions: [
                 IconButton(
@@ -215,8 +219,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       // 📂 التصنيفات
                       Text(
                         lang == 'ar' ? "التصنيفات" : "Categories",
-                        style: theme.textTheme.bodyLarge,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontSize: 18, // ✅ أكبر في الدارك
+                          color: isDark
+                              ? Colors.white
+                              : null, // ✅ أبيض في الدارك
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+
                       const SizedBox(height: 10),
 
                       SizedBox(
@@ -341,8 +352,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       isSearching
                           ? (lang == 'ar' ? "نتائج البحث" : "Search results")
                           : (lang == 'ar' ? "مشاكل شائعة" : "Common problems"),
-                      style: theme.textTheme.bodyLarge,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: isDark ? 20 : 18, // ✅ أكبر في الدارك
+                        color: isDark ? Colors.white : null, // ✅ أبيض في الدارك
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+
                     const SizedBox(height: 10),
 
                     // تم تعديل FutureBuilder ليستخدم _loadDiseases اللي بتتعامل مع البحث والعرض العشوائي
@@ -509,8 +525,9 @@ class _ProblemCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      //fontWeight: FontWeight.bold,
+                      fontSize: 14, // ✅ أكبر في الدارك
+                      color: isDark ? Colors.white : null, // ✅ أبيض في الدارك
                     ),
                   ),
                 ),

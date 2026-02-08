@@ -92,7 +92,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen> {
                                     style: theme.textTheme.headlineSmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.titleTheme,
+                                          color: isDark? const Color.fromARGB(255, 250, 252, 250): AppTheme.titleTheme,
                                         ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -116,7 +116,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen> {
                                           d['plant_name'],
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: cs.primary,
+                                            color:isDark?Colors.white :cs.primary,
                                           ),
                                         ),
                                         avatar: Icon(

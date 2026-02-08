@@ -152,26 +152,35 @@ class AppTheme {
       ),
 
       textTheme: const TextTheme(
+        // ✅ العنوان الرئيسي (أبيض قوي + Bold)
         titleLarge: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.bold,
           fontFamily: 'Cairo',
-          color: Colors.white,
+          color: Colors.white, // ✅ أبيض صافي (غامق)
         ),
+
+        // ✅ عنوان فرعي/قسم (أبيض عادي)
         bodyLarge: TextStyle(
           fontSize: 18,
           fontFamily: 'Cairo',
-          color: Colors.white70,
+          fontWeight: FontWeight.bold,
+          color: Color.fromARGB(255, 255, 255, 255), // ✅ أبيض عادي/أخف
         ),
+
+        // ✅ نص/عنوان فرعي أصغر (أبيض)
         bodyMedium: TextStyle(
           fontSize: 16,
           fontFamily: 'Cairo',
-          color: Colors.white70,
+         // fontWeight: FontWeight.w600,
+          color: Colors.white, // ✅ أبيض
         ),
+
+        // ✅ نص صغير (رمادي فاتح)
         bodySmall: TextStyle(
           fontSize: 12,
           fontFamily: 'Cairo',
-          color: Colors.white54,
+          color: Color.fromARGB(255, 255, 255, 255),
         ),
       ),
     );

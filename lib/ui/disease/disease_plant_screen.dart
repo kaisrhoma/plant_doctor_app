@@ -18,7 +18,6 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
   bool _isLoading = true;
 
   final TextEditingController _searchController = TextEditingController();
-  // 1. تعريف الـ FocusNode
   final FocusNode _searchFocusNode = FocusNode();
 
   @override
@@ -29,7 +28,6 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
 
   @override
   void dispose() {
-    // 2. التخلص من الـ Nodes والمتحكمات
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -81,7 +79,11 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
           appBar: AppBar(
             title: Text(
               lang == 'ar' ? "أمراض النبات" : "Plant Diseases",
-              style: theme.textTheme.bodyLarge,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: isDark ? Colors.white : cs.onSurface,
+                fontWeight: FontWeight.bold,
+                fontSize: isDark ? 20 : 18,
+              ),
             ),
             centerTitle: true,
             backgroundColor: theme.scaffoldBackgroundColor,
@@ -89,22 +91,21 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
             elevation: 0,
           ),
           body: GestureDetector(
-            // إغلاق الكيبورد عند الضغط في أي مكان فارغ
             onTap: () => FocusScope.of(context).unfocus(),
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 const SizedBox(height: 20),
 
-                // 🔍 مربع البحث مع الفوكس
+                // 🔍 مربع البحث
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: TextField(
                     controller: _searchController,
-                    focusNode: _searchFocusNode, // ربط النود هنا
+                    focusNode: _searchFocusNode,
                     onChanged: _runFilter,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurface,
+                      color: isDark ? Colors.white : cs.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: lang == 'ar'
@@ -160,6 +161,8 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
   }
 
   Widget _buildDiseaseContent(ThemeData theme, ColorScheme cs, String lang) {
+    final isDark = theme.brightness == Brightness.dark;
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -171,7 +174,7 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
           child: Text(
             lang == 'ar' ? "لا توجد نتائج بحث" : "No results found",
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: cs.onSurface.withOpacity(0.6),
+              color: isDark ? Colors.white70 : cs.onSurface.withOpacity(0.6),
             ),
           ),
         ),
@@ -191,7 +194,6 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
           subtitle: lang == 'ar' ? "اضغط لعرض التفاصيل" : "Tap to view details",
           imagePath: disease['image_path'] ?? 'assets/images/placeholder.png',
           onTap: () {
-            // 3. إغلاق الفوكس قبل الانتقال للشاشة التالية
             _searchFocusNode.unfocus();
 
             Navigator.push(
@@ -200,8 +202,7 @@ class _DiseasePlantScreenState extends State<DiseasePlantScreen> {
                 builder: (_) => DiseaseDetailsScreen(
                   diseaseCode: disease['disease_code'],
                   plantCode: widget.plantCode,
-                  showPlantLink:
-                      false, // هنا نمنع ظهور الزر لأننا جئنا من شاشة النبات أصلاً
+                  showPlantLink: false,
                 ),
               ),
             );
@@ -235,7 +236,6 @@ class DiseaseCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        // ✅ بدل Colors.white
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -274,20 +274,28 @@ class DiseaseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ✅ عنوان المرض: أبيض + أكبر في الدارك
                     Text(
                       title,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isDark ? 15 : 14,
+                        color: isDark ? Colors.white : cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
+
+                    // ✅ Subtitle: أبيض خفيف في الدارك
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: cs.onSurface.withOpacity(0.65),
+                        fontSize: 11,
+                        color: isDark
+                            ? Colors.white70
+                            : cs.onSurface.withOpacity(0.65),
                       ),
                     ),
+
                     const SizedBox(height: 10),
                     Row(
                       children: [
@@ -327,7 +335,6 @@ class DiseaseCard extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: color.withOpacity(0.55), width: 1.5),
-        // ✅ خلفية خفيفة تتبع السطح
         color: cs.surface.withOpacity(0.20),
       ),
       child: Icon(icon, size: 14, color: color),

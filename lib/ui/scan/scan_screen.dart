@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/runtime_settings.dart';
 import '../../ai/disease_classifier.dart';
+import '../disease/disease_details_screen.dart';
 import '../disease/disease_plant_screen.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -29,27 +31,14 @@ class _ScanScreenState extends State<ScanScreen>
   late final AnimationController _scanCtrl;
   final _picker = ImagePicker();
 
-  // =========================
-  // 1) إعدادات مقاس المستطيل
-  // =========================
-  static const double _vfW = 320; // عرض المستطيل
-  static const double _vfH = 420; // ارتفاع المستطيل
-  static const double _vfR = 22; // تدوير الزوايا
+  // ✅ مربع بدل مستطيل
+  static const double _vfSize = 320;
+  static const double _vfR = 22;
 
-  // =========================
-  // 2) رفع المستطيل للأعلى
-  // =========================
-  static const double _vfLift = 0.45;
+  // ✅ رفع المربع للأعلى أكثر
+  static const double _vfLift = 0.52;
 
-  // =========================
-  // 3) شفافية طبقة التظليل خارج المستطيل
-  // =========================
-  static const double _dimOpacity = 0.45;
-
-  // =========================
-  // 4) ✅ رفع الأزرار الثلاثة للأعلى (بالبكسل)
-  // =========================
-  // زِد الرقم = الأزرار ترتفع أكثر
+  // ✅ رفع الأزرار اللي تحت للأعلى أكثر
   static const double _buttonsBottomPad = 48;
 
   @override
@@ -164,16 +153,7 @@ class _ScanScreenState extends State<ScanScreen>
     } catch (e) {
       debugPrint('Model error: $e');
       if (!mounted) return;
-      setState(() {
-        _result = DiseaseResult(
-          plant: 'unknown',
-          label: 'error',
-          confidence: 0,
-          title: 'خطأ',
-          description: 'Model error: $e',
-          modelUsed: null,
-        );
-      });
+      _setErrorResult('Model error: $e');
     }
   }
 
@@ -195,316 +175,185 @@ class _ScanScreenState extends State<ScanScreen>
   Widget build(BuildContext context) {
     final camReady = _cam?.value.isInitialized == true;
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (camReady) CameraPreview(_cam!),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: RuntimeSettings.locale,
+      builder: (_, loc, __) {
+        final lang = loc.languageCode;
+        final isAr = lang == 'ar';
 
-          // ✅ الإطار + الثقب داخل بعض (نفس المكان)
-          if (camReady)
-            Align(
-              alignment: Alignment(0, -_vfLift),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  _HoleOverlay(
-                    holeW: _vfW,
-                    holeH: _vfH,
-                    radius: _vfR,
-                    dimOpacity: _dimOpacity,
-                    lift: 0.0, // ✅ صار داخل Align لذلك نخليه 0
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ViewFinder(
-                        scanCtrl: _scanCtrl,
-                        showScan: _busy,
-                        width: _vfW,
-                        height: _vfH,
-                        radius: _vfR,
-                      ),
-                      const SizedBox(height: 12),
-                      AnimatedOpacity(
-                        opacity: _busy ? 1 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          'جاري الفحص...',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Colors.white.withOpacity(0.95),
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+        final guideText = isAr
+            ? 'اجعل النبات في بؤرة التركيز'
+            : 'Keep the plant in focus';
 
-          SafeArea(
-            bottom: true,
-            child: Stack(
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            body: Stack(
+              fit: StackFit.expand,
               children: [
-                // زر الرجوع
-                Positioned(
-                  left: 12,
-                  top: 12,
-                  child: _TopIconButton(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    onTap: () => Navigator.maybePop(context),
-                  ),
-                ),
+                if (camReady) CameraPreview(_cam!),
 
-                // ✅ أسفل الشاشة: (بطاقة النتيجة فوق الأزرار) + الأزرار مرفوعة
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: 14,
-                      right: 14,
-                      bottom: _buttonsBottomPad,
-                    ),
+                // ✅ بدون أي تظليل / overlay — فقط المربع والنص
+                if (camReady)
+                  Align(
+                    alignment: Alignment(0, -_vfLift),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // بطاقة النتيجة
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: (_result == null)
-                              ? const SizedBox.shrink()
-                              : _ResultCard(
-                                  title: _result!.title,
-                                  desc:
-                                      'النبات: ${_result!.plant}\n'
-                                      'الثقة: ${_pct(_result!.confidence)}\n'
-                                      '${_result!.description}',
-                                  thumbPath: _imgPath,
-                                  onTap: () {
-                                    final r = _result!;
-                                    showDialog(
-                                      context: context,
-                                      builder: (_) => AlertDialog(
-                                        title: Text(r.title),
-                                        content: SingleChildScrollView(
-                                          child: Text(
-                                            'النبات: ${r.plant}\n'
-                                            'الثقة: ${_pct(r.confidence)}\n\n'
-                                            '${r.description}',
-                                          ),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: const Text('إغلاق'),
-                                          ),
-                                          if (r.plant != 'unknown')
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        DiseasePlantScreen(
-                                                          plantCode: r.plant,
-                                                        ),
-                                                  ),
-                                                );
-                                              },
-                                              child: const Text('تفاصيل'),
-                                            ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
+                        _SquareViewFinder(size: _vfSize, radius: _vfR),
+                        const SizedBox(height: 12),
+                        Text(
+                          guideText,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white.withOpacity(0.90),
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
-
-                        if (_result != null) const SizedBox(height: 10),
-
-                        // ✅ الأزرار الثلاثة بدون مربع/شريط
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _RoundAction(
-                              icon: Icons.photo_outlined,
-                              onTap: _pickFromGallery,
-                            ),
-                            _CaptureButton(onTap: _capture, busy: _busy),
-                            _RoundAction(
-                              icon: _flashOn ? Icons.flash_on : Icons.flash_off,
-                              onTap: _toggleFlash,
-                            ),
-                          ],
+                        const SizedBox(height: 10),
+                        AnimatedOpacity(
+                          opacity: _busy ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Text(
+                            isAr ? 'جاري الفحص...' : 'Scanning...',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withOpacity(0.95),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
                       ],
+                    ),
+                  ),
+
+                SafeArea(
+                  bottom: true,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                      ).copyWith(bottom: _buttonsBottomPad),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: (_result == null)
+                                ? const SizedBox.shrink()
+                                : _ResultCard(
+                                    title: _result!.title,
+                                    desc: isAr
+                                        ? 'النبات: ${_result!.plant}\n'
+                                              'الثقة: ${_pct(_result!.confidence)}\n'
+                                              '${_result!.description}'
+                                        : 'Plant: ${_result!.plant}\n'
+                                              'Confidence: ${_pct(_result!.confidence)}\n'
+                                              '${_result!.description}',
+                                    thumbPath: _imgPath,
+                                    onTap: () {
+                                      final r = _result!;
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: Text(r.title),
+                                          content: SingleChildScrollView(
+                                            child: Text(
+                                              isAr
+                                                  ? 'النبات: ${r.plant}\n'
+                                                        'الثقة: ${_pct(r.confidence)}\n\n'
+                                                        '${r.description}'
+                                                  : 'Plant: ${r.plant}\n'
+                                                        'Confidence: ${_pct(r.confidence)}\n\n'
+                                                        '${r.description}',
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text(
+                                                isAr ? 'إغلاق' : 'Close',
+                                              ),
+                                            ),
+                                            if (r.plant != 'unknown')
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+
+                                                  if (r.label != 'error' &&
+                                                      r.label.isNotEmpty) {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (_) =>
+                                                            DiseaseDetailsScreen(
+                                                              diseaseCode:
+                                                                  r.label,
+                                                              plantCode:
+                                                                  r.plant,
+                                                              showPlantLink:
+                                                                  true,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  } else {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (_) =>
+                                                            DiseasePlantScreen(
+                                                              plantCode:
+                                                                  r.plant,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                child: Text(
+                                                  isAr ? 'تفاصيل' : 'Details',
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                          if (_result != null) const SizedBox(height: 10),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _RoundAction(
+                                icon: Icons.photo_outlined,
+                                onTap: _pickFromGallery,
+                              ),
+                              _CaptureButton(onTap: _capture, busy: _busy),
+                              _RoundAction(
+                                icon: _flashOn
+                                    ? Icons.flash_on
+                                    : Icons.flash_off,
+                                onTap: _toggleFlash,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 /// ===== Widgets =====
-
-class _TopIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _TopIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.black.withOpacity(0.25),
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Icon(icon, color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ViewFinder extends StatelessWidget {
-  final AnimationController scanCtrl;
-  final bool showScan;
-  final double width;
-  final double height;
-  final double radius;
-
-  const _ViewFinder({
-    required this.scanCtrl,
-    required this.showScan,
-    this.width = 320,
-    this.height = 420,
-    this.radius = 22,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Stack(
-          children: [
-            // إطار فقط بدون لون داخلي
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.90),
-                  width: 1.6,
-                ),
-              ),
-            ),
-
-            // خط المسح أثناء الفحص
-            if (showScan)
-              AnimatedBuilder(
-                animation: scanCtrl,
-                builder: (_, __) {
-                  final t = scanCtrl.value;
-                  return Align(
-                    alignment: Alignment(0, (t * 2) - 1),
-                    child: Container(
-                      height: height * 0.20,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            AppTheme.primaryGreen.withOpacity(0.70),
-                            AppTheme.primaryGreen.withOpacity(0.15),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-            Positioned.fill(child: CustomPaint(painter: _CornerPainter())),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CornerPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = Colors.white.withOpacity(0.85)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    const len = 34.0;
-    const pad = 14.0;
-
-    canvas.drawLine(const Offset(pad, pad), const Offset(pad + len, pad), p);
-    canvas.drawLine(const Offset(pad, pad), const Offset(pad, pad + len), p);
-
-    canvas.drawLine(
-      Offset(size.width - pad, pad),
-      Offset(size.width - pad - len, pad),
-      p,
-    );
-    canvas.drawLine(
-      Offset(size.width - pad, pad),
-      Offset(size.width - pad, pad + len),
-      p,
-    );
-
-    canvas.drawLine(
-      Offset(pad, size.height - pad),
-      Offset(pad + len, size.height - pad),
-      p,
-    );
-    canvas.drawLine(
-      Offset(pad, size.height - pad),
-      Offset(pad, size.height - pad - len),
-      p,
-    );
-
-    canvas.drawLine(
-      Offset(size.width - pad, size.height - pad),
-      Offset(size.width - pad - len, size.height - pad),
-      p,
-    );
-    canvas.drawLine(
-      Offset(size.width - pad, size.height - pad),
-      Offset(size.width - pad, size.height - pad - len),
-      p,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 class _RoundAction extends StatelessWidget {
   final IconData icon;
@@ -515,7 +364,6 @@ class _RoundAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      // زر دائري شفاف بدون مربع خارجي
       color: Colors.white.withOpacity(0.16),
       shape: const CircleBorder(),
       child: InkWell(
@@ -575,8 +423,16 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bg = isDark
+        ? const Color(0xFF1E1E1E)
+        : Colors.white.withOpacity(0.92);
+    final titleColor = isDark ? Colors.white : Colors.black87;
+    final descColor = isDark ? Colors.white70 : Colors.black54;
+
     return Material(
-      color: Colors.white.withOpacity(0.92),
+      color: bg,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -606,6 +462,7 @@ class _ResultCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: titleColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -613,7 +470,9 @@ class _ResultCard extends StatelessWidget {
                       desc,
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: descColor),
                     ),
                   ],
                 ),
@@ -636,84 +495,85 @@ class _ResultCard extends StatelessWidget {
   }
 }
 
-/// Overlay: طبقة خارج المستطيل + ثقب شفاف
-class _HoleOverlay extends StatelessWidget {
-  final double holeW;
-  final double holeH;
+/// ✅ ViewFinder مربع (إطار + زوايا) بدون تظليل وبدون خط مسح
+class _SquareViewFinder extends StatelessWidget {
+  final double size;
   final double radius;
-  final double dimOpacity;
-  final double lift;
 
-  const _HoleOverlay({
-    required this.holeW,
-    required this.holeH,
-    this.radius = 22,
-    this.dimOpacity = 0.45,
-    this.lift = 0.0,
-  });
+  const _SquareViewFinder({required this.size, required this.radius});
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: LayoutBuilder(
-        builder: (_, c) {
-          final size = Size(c.maxWidth, c.maxHeight);
-
-          // نفس منطق Alignment(0, -lift)
-          final center = Offset(
-            size.width / 2,
-            (size.height / 2) + ((-lift) * (size.height / 2)),
-          );
-
-          final rect = Rect.fromCenter(
-            center: center,
-            width: holeW,
-            height: holeH,
-          );
-
-          return CustomPaint(
-            size: Size.infinite,
-            painter: _HoleOverlayPainter(
-              holeRect: rect,
-              radius: radius,
-              dimOpacity: dimOpacity,
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.90),
+                width: 1.6,
+              ),
             ),
-          );
-        },
+          ),
+          Positioned.fill(child: CustomPaint(painter: _CornerPainter())),
+        ],
       ),
     );
   }
 }
 
-class _HoleOverlayPainter extends CustomPainter {
-  final Rect holeRect;
-  final double radius;
-  final double dimOpacity;
-
-  _HoleOverlayPainter({
-    required this.holeRect,
-    required this.radius,
-    required this.dimOpacity,
-  });
-
+class _CornerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.saveLayer(Offset.zero & size, Paint());
+    final p = Paint()
+      ..color = Colors.white.withOpacity(0.85)
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    final dimPaint = Paint()..color = Colors.black.withOpacity(dimOpacity);
-    canvas.drawRect(Offset.zero & size, dimPaint);
+    const len = 34.0;
+    const pad = 14.0;
 
-    final holePaint = Paint()..blendMode = BlendMode.clear;
-    final rrect = RRect.fromRectAndRadius(holeRect, Radius.circular(radius));
-    canvas.drawRRect(rrect, holePaint);
+    canvas.drawLine(const Offset(pad, pad), const Offset(pad + len, pad), p);
+    canvas.drawLine(const Offset(pad, pad), const Offset(pad, pad + len), p);
 
-    canvas.restore();
+    canvas.drawLine(
+      Offset(size.width - pad, pad),
+      Offset(size.width - pad - len, pad),
+      p,
+    );
+    canvas.drawLine(
+      Offset(size.width - pad, pad),
+      Offset(size.width - pad, pad + len),
+      p,
+    );
+
+    canvas.drawLine(
+      Offset(pad, size.height - pad),
+      Offset(pad + len, size.height - pad),
+      p,
+    );
+    canvas.drawLine(
+      Offset(pad, size.height - pad),
+      Offset(pad, size.height - pad - len),
+      p,
+    );
+
+    canvas.drawLine(
+      Offset(size.width - pad, size.height - pad),
+      Offset(size.width - pad - len, size.height - pad),
+      p,
+    );
+    canvas.drawLine(
+      Offset(size.width - pad, size.height - pad),
+      Offset(size.width - pad, size.height - pad - len),
+      p,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _HoleOverlayPainter oldDelegate) {
-    return oldDelegate.holeRect != holeRect ||
-        oldDelegate.radius != radius ||
-        oldDelegate.dimOpacity != dimOpacity;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
