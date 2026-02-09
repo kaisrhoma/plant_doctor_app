@@ -177,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (v == _searchText) return; //  يمنع rebuild غير ضروري
 
                         // لا نبحث إلا إذا كان النص فارغاً (للعودة) أو أكثر من حرفين
-                        if (v.isEmpty || v.length >= 1) {
+                        if (v.isEmpty || v.isNotEmpty) {
                           _updateData(v, lang);
                         }
                         setState(() {
@@ -440,7 +440,7 @@ class _CategoryItem extends StatelessWidget {
   final String title;
   final String image;
 
-  const _CategoryItem(this.title, this.image, {super.key});
+  const _CategoryItem(this.title, this.image);
 
   @override
   Widget build(BuildContext context) {

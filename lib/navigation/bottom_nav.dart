@@ -21,7 +21,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     // ✅ ضع القائمة هنا داخل الـ build
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       const HomeScreen(),
       ScanScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
       const SettingsScreen(),
@@ -48,7 +48,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
       },
       child: Scaffold(
         extendBody: true,
-        body: _screens[_currentIndex],
+        body: screens[_currentIndex],
 
         // 📸 زر الكاميرا الدائري - يختفي عند النقر عليه
         floatingActionButton: isScanning

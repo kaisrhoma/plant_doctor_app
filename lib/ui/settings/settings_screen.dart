@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/runtime_settings.dart';
+import '../../core/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -34,20 +36,181 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _noti = v);
   }
 
-  void _about({required bool isAr}) {
-    showAboutDialog(
+  // ✅ BottomSheet للتراخيص: عناوين ملوّنة + نص صغير رمادي (لايت)
+  Future<void> _licensesSheet({required bool isAr}) async {
+    final t = Theme.of(context);
+    final isDark = t.brightness == Brightness.dark;
+
+    final titleStyle = t.textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: isDark ? Colors.white : AppTheme.titleTheme,
+    );
+
+    final bodyStyle = t.textTheme.bodySmall?.copyWith(
+      height: 1.45,
+      color: isDark ? const Color(0xFFDDDDDD) : const Color(0xFF777777),
+    );
+
+    final items = isAr
+        ? const [
+            ('شروط الاستخدام', 'استخدام مشروع فقط. النتائج إرشادية وقد تختلف.'),
+            (
+              'سياسة الخصوصية',
+              'نحفظ إعداداتك محليًا. صور التشخيص للتحليل فقط.',
+            ),
+            (
+              'إخلاء المسؤولية',
+              'ليس بديلاً عن خبير زراعي. القرار على مسؤوليتك.',
+            ),
+            (
+              'حقوق الملكية والترخيص',
+              'محتوى التطبيق محفوظ. يمنع النسخ دون إذن.',
+            ),
+          ]
+        : const [
+            (
+              'Terms of Use',
+              'Lawful use only. Results are guidance and may vary.',
+            ),
+            (
+              'Privacy Policy',
+              'Settings stored locally. Diagnosis images for analysis only.',
+            ),
+            (
+              'Disclaimer',
+              'Not a substitute for an agronomist. Decisions are yours.',
+            ),
+            (
+              'IP & License',
+              'App content is protected. No copying without permission.',
+            ),
+          ];
+
+    await showModalBottomSheet(
       context: context,
-      applicationName: 'Plant Doctor',
-      applicationVersion: '1.0.0',
-      applicationIcon: const Icon(Icons.local_florist),
-      children: [
-        const SizedBox(height: 8),
-        Text(
-          isAr
-              ? 'تطبيق لتشخيص أمراض النباتات واقتراح العلاجات.'
-              : 'An app to diagnose plant diseases and suggest treatments.',
-        ),
-      ],
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: t.bottomSheetTheme.backgroundColor,
+      builder: (ctx) {
+        return SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.65,
+            minChildSize: 0.40,
+            maxChildSize: 0.95,
+            builder: (_, controller) {
+              return ListView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                children: [
+                  Text(
+                    isAr ? 'التراخيص والسياسات' : 'Licenses & Policies',
+                    style: t.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 10),
+
+                  ...items.expand(
+                    (e) => [
+                      Text(e.$1, style: titleStyle),
+                      const SizedBox(height: 4),
+                      Text(e.$2, style: bodyStyle),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // ✅ (اختياري) زر تراخيص Flutter المفتوحة المصدر
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ About dialog مخصص (بدون زر "الاطلاع على التراخيص" اللي فوق)
+  void _about({required bool isAr}) {
+    final t = Theme.of(context);
+    final isDark = t.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: t.dialogTheme.backgroundColor,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          title: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Plant Doctor',
+                    style: t.textTheme.titleLarge?.copyWith(
+                      color: isDark ? Colors.white : AppTheme.titleTheme,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+              Align(
+                alignment: AlignmentDirectional.center,
+                child: Text(
+                  '1.0.0',
+                  style: t.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            isAr
+                ? 'تطبيق لتشخيص أمراض النباتات واقتراح العلاجات.'
+                : 'An app to diagnose plant diseases and suggest treatments.',
+            textAlign: TextAlign.center,
+            style: t.textTheme.bodyMedium,
+          ),
+
+          // ✅ فقط الزر اللي تحت (الاطلاع على التراخيص) + إغلاق
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _licensesSheet(isAr: isAr);
+              },
+              child: Text(
+                isAr ? 'الاطلاع على التراخيص' : 'View licenses',
+                style: t.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                isAr ? 'الإغلاق' : 'Close',
+                style: t.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? const Color(0xFFDDDDDD)
+                      : const Color(0xFF777777),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -76,7 +239,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 200,
               ),
               const SizedBox(height: 16),
-
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -176,13 +338,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget? trailing,
     required VoidCallback onTap,
   }) {
+    final t = Theme.of(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: t.brightness == Brightness.dark
+          ? t.cardColor
+          : AppTheme.backraoundCard,
+      surfaceTintColor: Colors.transparent,
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title, style: Theme.of(context).textTheme.bodyMedium),
+        title: Text(title, style: t.textTheme.bodyMedium),
         subtitle: subtitle != null
-            ? Text(subtitle, style: Theme.of(context).textTheme.bodySmall)
+            ? Text(subtitle, style: t.textTheme.bodySmall)
             : null,
         trailing: trailing ?? const Icon(Icons.chevron_right),
         onTap: onTap,
@@ -191,7 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// ✅ صورة خلفية بانحناء بيضاوي ناعم (قوسين) مثل التصميم
+/// ✅ صورة خلفية بانحناء بيضاوي ناعم
 class _CurvedHeaderImage extends StatelessWidget {
   final String imagePath;
   final double height;
