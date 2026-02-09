@@ -1,19 +1,21 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:plant_doctor_app/ui/disease/disease_details_screen.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/runtime_settings.dart';
 import '../../ai/disease_classifier.dart';
-import '../disease/disease_details_screen.dart';
-import '../disease/disease_plant_screen.dart';
+import '../../ai/image_crop_utils.dart';
 
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+  // ✅ أضف هذا السطر لاستلام الدالة من الـ BottomNav
+  final VoidCallback? onBackToHome;
+
+  const ScanScreen({super.key, this.onBackToHome});
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -26,554 +28,508 @@ class _ScanScreenState extends State<ScanScreen>
   bool _flashOn = false;
 
   String? _imgPath;
+  String? _croppedImgPath;
   DiseaseResult? _result;
 
-  late final AnimationController _scanCtrl;
+  late final AnimationController _scanLineCtrl;
   final _picker = ImagePicker();
 
-  // ✅ مربع بدل مستطيل
-  static const double _vfSize = 320;
+  static const double _vfSize = 280;
   static const double _vfR = 22;
-
-  // ✅ رفع المربع للأعلى أكثر
-  static const double _vfLift = 0.52;
-
-  // ✅ رفع الأزرار اللي تحت للأعلى أكثر
-  static const double _buttonsBottomPad = 48;
 
   @override
   void initState() {
     super.initState();
-
-    _scanCtrl = AnimationController(
+    _scanLineCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-
     _initCamera();
   }
 
+  // الدالة التي كانت تسبب الخطأ
+  String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
+
   Future<void> _initCamera() async {
+    final cams = await availableCameras();
+    if (cams.isEmpty) return;
+
+    _cam = CameraController(
+      cams.first,
+      ResolutionPreset.high,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+
     try {
-      final cams = await availableCameras();
-      final back = cams.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cams.first,
-      );
-
-      final ctrl = CameraController(
-        back,
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-
-      await ctrl.initialize();
-      if (!mounted) return;
-      setState(() => _cam = ctrl);
+      await _cam!.initialize();
+      if (mounted) setState(() {});
     } catch (e) {
-      debugPrint('Camera init error: $e');
-      _setErrorResult('Camera init error: $e');
+      debugPrint("Camera Error: $e");
     }
   }
 
   @override
   void dispose() {
-    _scanCtrl.dispose();
+    _scanLineCtrl.dispose();
     _cam?.dispose();
     super.dispose();
   }
 
-  String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
-
-  Future<void> _toggleFlash() async {
-    if (_cam == null) return;
+  Future<void> _runModel(Uint8List bytes) async {
     try {
-      _flashOn = !_flashOn;
-      await _cam!.setFlashMode(_flashOn ? FlashMode.torch : FlashMode.off);
-      setState(() {});
+      final decoded = await decodeImageFromList(bytes);
+      final imgW = decoded.width.toDouble();
+      final imgH = decoded.height.toDouble();
+
+      // 1. حساب حجم الشاشة الفعلي
+      final screenSize = MediaQuery.of(context).size;
+
+      // 2. حساب نسبة التناسب مع مراعاة أن الكاميرا (Preview) تغطي الشاشة بالكامل (Cover)
+      // نستخدم التناسب الأكبر لضمان مطابقة القص لما يظهر في الـ fill preview
+      double scale = 1.0;
+      if (imgH / imgW > screenSize.height / screenSize.width) {
+        scale = imgW / screenSize.width;
+      } else {
+        scale = imgH / screenSize.height;
+      }
+
+      // 3. تحويل حجم المربع من الشاشة إلى بكسلات الصورة الأصلية
+      final double cropSizeInPixels = _vfSize * scale;
+
+      // 4. القص من المركز الفعلي للصورة
+      final imageRect = Rect.fromCenter(
+        center: Offset(imgW / 2, imgH / 2),
+        width: cropSizeInPixels,
+        height: cropSizeInPixels,
+      );
+
+      final croppedBytes = ImageCropUtils.cropToRect(
+        bytes: bytes,
+        imageSize: Size(imgW, imgH),
+        cropRect: imageRect,
+      );
+
+      // ... باقي الكود لحفظ الملف وعرض النتيجة
+
+      final tempDir = await Directory.systemTemp.createTemp();
+      final file = File(
+        '${tempDir.path}/crop_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+      await file.writeAsBytes(croppedBytes);
+
+      final res = await DiseaseClassifier.instance.classify(croppedBytes);
+
+      if (mounted) {
+        setState(() {
+          _result = res;
+          _croppedImgPath = file.path;
+        });
+      }
     } catch (e) {
-      debugPrint('Flash error: $e');
+      debugPrint("Crop/Model Error: $e");
     }
   }
 
   Future<void> _capture() async {
     if (_cam == null || _busy) return;
-
     setState(() {
       _busy = true;
       _result = null;
-      _imgPath = null;
     });
 
     try {
       final file = await _cam!.takePicture();
-      _imgPath = file.path;
-
       final bytes = await File(file.path).readAsBytes();
+      _imgPath = file.path;
       await _runModel(bytes);
-    } catch (e) {
-      debugPrint('Capture error: $e');
-      _setErrorResult('Capture error: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  Future<void> _pickFromGallery() async {
-    if (_busy) return;
-
-    final x = await _picker.pickImage(source: ImageSource.gallery);
-    if (x == null) return;
-
-    setState(() {
-      _busy = true;
-      _result = null;
-      _imgPath = x.path;
-    });
-
-    try {
-      final bytes = await File(x.path).readAsBytes();
-      await _runModel(bytes);
-    } catch (e) {
-      debugPrint('Gallery read error: $e');
-      _setErrorResult('Gallery read error: $e');
-    }
-
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  Future<void> _runModel(Uint8List bytes) async {
-    try {
-      final res = await DiseaseClassifier.instance.classify(bytes);
-      if (!mounted) return;
-      setState(() => _result = res);
-    } catch (e) {
-      debugPrint('Model error: $e');
-      if (!mounted) return;
-      _setErrorResult('Model error: $e');
-    }
-  }
-
-  void _setErrorResult(String err) {
-    if (!mounted) return;
-    setState(() {
-      _result = DiseaseResult(
-        plant: 'unknown',
-        label: 'error',
-        confidence: 0,
-        title: 'خطأ',
-        description: err,
-        modelUsed: null,
-      );
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final camReady = _cam?.value.isInitialized == true;
+    final isAr = RuntimeSettings.locale.value.languageCode == 'ar';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ValueListenableBuilder<Locale>(
-      valueListenable: RuntimeSettings.locale,
-      builder: (_, loc, __) {
-        final lang = loc.languageCode;
-        final isAr = lang == 'ar';
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // 1. معاينة الكاميرا
+          if (_cam != null && _cam!.value.isInitialized)
+            Positioned.fill(child: CameraPreview(_cam!)),
 
-        final guideText = isAr
-            ? 'اجعل النبات في بؤرة التركيز'
-            : 'Keep the plant in focus';
+          // 2. زر الخروج العلوي
+          _buildBackButton(context, isDark, widget.onBackToHome),
 
-        return Directionality(
-          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
-          child: Scaffold(
-            body: Stack(
-              fit: StackFit.expand,
+          // 3. منطقة المسح في المنتصف
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (camReady) CameraPreview(_cam!),
+                // مربع التصوير (Stack)
+                Stack(
+                  alignment: Alignment.center, // يضمن توسيط كل شيء بالداخل
+                  children: [
+                    // 1. المربع المرسوم
+                    _SquareViewFinder(size: _vfSize, radius: _vfR),
 
-                // ✅ بدون أي تظليل / overlay — فقط المربع والنص
-                if (camReady)
-                  Align(
-                    alignment: Alignment(0, -_vfLift),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SquareViewFinder(size: _vfSize, radius: _vfR),
-                        const SizedBox(height: 12),
-                        Text(
-                          guideText,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Colors.white.withOpacity(0.90),
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(height: 10),
-                        AnimatedOpacity(
-                          opacity: _busy ? 1 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Text(
-                            isAr ? 'جاري الفحص...' : 'Scanning...',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withOpacity(0.95),
-                                  fontWeight: FontWeight.w700,
-                                ),
+                    // 2. النص في المنتصف (يختفي عند البدء بالمسح لجعل الرؤية واضحة)
+                    if (!_busy)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          isAr
+                              ? "ضع النبات في بؤرة التركيز"
+                              : "Place the plant in the center of attention",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5), // لون خافت
+                            fontSize: 13, // حجم صغير
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                SafeArea(
-                  bottom: true,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                      ).copyWith(bottom: _buttonsBottomPad),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: (_result == null)
-                                ? const SizedBox.shrink()
-                                : _ResultCard(
-                                    title: _result!.title,
-                                    desc: isAr
-                                        ? 'النبات: ${_result!.plant}\n'
-                                              'الثقة: ${_pct(_result!.confidence)}\n'
-                                              '${_result!.description}'
-                                        : 'Plant: ${_result!.plant}\n'
-                                              'Confidence: ${_pct(_result!.confidence)}\n'
-                                              '${_result!.description}',
-                                    thumbPath: _imgPath,
-                                    onTap: () {
-                                      final r = _result!;
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: Text(r.title),
-                                          content: SingleChildScrollView(
-                                            child: Text(
-                                              isAr
-                                                  ? 'النبات: ${r.plant}\n'
-                                                        'الثقة: ${_pct(r.confidence)}\n\n'
-                                                        '${r.description}'
-                                                  : 'Plant: ${r.plant}\n'
-                                                        'Confidence: ${_pct(r.confidence)}\n\n'
-                                                        '${r.description}',
-                                            ),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text(
-                                                isAr ? 'إغلاق' : 'Close',
-                                              ),
-                                            ),
-                                            if (r.plant != 'unknown')
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-
-                                                  if (r.label != 'error' &&
-                                                      r.label.isNotEmpty) {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            DiseaseDetailsScreen(
-                                                              diseaseCode:
-                                                                  r.label,
-                                                              plantCode:
-                                                                  r.plant,
-                                                              showPlantLink:
-                                                                  true,
-                                                            ),
-                                                      ),
-                                                    );
-                                                  } else {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            DiseasePlantScreen(
-                                                              plantCode:
-                                                                  r.plant,
-                                                            ),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                                child: Text(
-                                                  isAr ? 'تفاصيل' : 'Details',
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          if (_result != null) const SizedBox(height: 10),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _RoundAction(
-                                icon: Icons.photo_outlined,
-                                onTap: _pickFromGallery,
-                              ),
-                              _CaptureButton(onTap: _capture, busy: _busy),
-                              _RoundAction(
-                                icon: _flashOn
-                                    ? Icons.flash_on
-                                    : Icons.flash_off,
-                                onTap: _toggleFlash,
-                              ),
-                            ],
-                          ),
-                        ],
                       ),
-                    ),
-                  ),
+
+                    // 3. خط المسح الأخضر (يظهر فقط عند المعالجة)
+                    if (_busy)
+                      AnimatedBuilder(
+                        animation: _scanLineCtrl,
+                        builder: (context, child) {
+                          return Positioned(
+                            top: 10 + (_scanLineCtrl.value * (_vfSize - 20)),
+                            left: 10,
+                            right: 10,
+                            child: Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: Colors.greenAccent,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.greenAccent.withOpacity(0.6),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
                 ),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-}
 
-/// ===== Widgets =====
-
-class _RoundAction extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _RoundAction({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(0.16),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 54,
-          height: 54,
-          child: Icon(icon, color: Colors.white.withOpacity(0.98)),
-        ),
-      ),
-    );
-  }
-}
-
-class _CaptureButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final bool busy;
-
-  const _CaptureButton({required this.onTap, required this.busy});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: busy ? null : onTap,
-        child: SizedBox(
-          width: 70,
-          height: 70,
-          child: busy
-              ? const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(strokeWidth: 3),
-                )
-              : Icon(Icons.center_focus_strong, color: AppTheme.primaryGreen),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultCard extends StatelessWidget {
-  final String title;
-  final String desc;
-  final String? thumbPath;
-  final VoidCallback onTap;
-
-  const _ResultCard({
-    required this.title,
-    required this.desc,
-    required this.thumbPath,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final bg = isDark
-        ? const Color(0xFF1E1E1E)
-        : Colors.white.withOpacity(0.92);
-    final titleColor = isDark ? Colors.white : Colors.black87;
-    final descColor = isDark ? Colors.white70 : Colors.black54;
-
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: thumbPath == null
-                      ? Container(color: Colors.grey.shade300)
-                      : Image.file(File(thumbPath!), fit: BoxFit.cover),
+          // 4. البار السفلي الأسود
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              padding: const EdgeInsets.only(
+                top: 20,
+                bottom: 40,
+                left: 30,
+                right: 30,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.9),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_result != null) _buildResultCard(isAr),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // زر الاستوديو
+                      _RoundAction(
+                        icon: Icons.image_outlined,
+                        onTap: () async {
+                          final x = await _picker.pickImage(
+                            source: ImageSource.gallery,
+                          );
+                          if (x != null) {
+                            setState(() => _busy = true);
+                            final b = await File(x.path).readAsBytes();
+                            _imgPath = x.path;
+                            await _runModel(b);
+                            setState(() => _busy = false);
+                          }
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      desc,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: descColor),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.20),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.chevron_right, color: AppTheme.primaryGreen),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// ✅ ViewFinder مربع (إطار + زوايا) بدون تظليل وبدون خط مسح
-class _SquareViewFinder extends StatelessWidget {
-  final double size;
-  final double radius;
-
-  const _SquareViewFinder({required this.size, required this.radius});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.90),
-                width: 1.6,
+                      // زر الالتقاط الكبير
+                      GestureDetector(
+                        onTap: _capture,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: _busy
+                                ? const CircularProgressIndicator(
+                                    color: Colors.green,
+                                  )
+                                : Icon(
+                                    Icons.camera_alt,
+                                    color: AppTheme.primaryGreen,
+                                    size: 35,
+                                  ),
+                          ),
+                        ),
+                      ),
+                      // زر الفلاش
+                      _RoundAction(
+                        icon: _flashOn ? Icons.flash_on : Icons.flash_off,
+                        onTap: () {
+                          setState(() => _flashOn = !_flashOn);
+                          _cam?.setFlashMode(
+                            _flashOn ? FlashMode.torch : FlashMode.off,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-          Positioned.fill(child: CustomPaint(painter: _CornerPainter())),
         ],
       ),
     );
   }
+
+  Widget _buildResultCard(bool isAr) {
+    bool isPlant = _result!.confidence >= 0.6 ? true : false;
+    return InkWell(
+      onTap: () {
+        if (_result == null) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DiseaseDetailsScreen(
+              // استخدمنا الـ Getters التي أضفناها بالأعلى
+              diseaseCode: _result!.diseaseCode,
+              plantCode: _result!.plantCode,
+              showPlantLink: true,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // صورة المعاينة
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                File(_croppedImgPath ?? _imgPath!),
+                width: 55,
+                height: 55,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // اسم المرض
+                  Text(
+                    isPlant
+                        ? _result!.title
+                        : isAr
+                        ? "غير معروف"
+                        : "Unknown",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  // اسم النبات
+                  isPlant
+                      ? Text(
+                          "${isAr ? 'النبات' : 'Plant'}: ${_result!.plant}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        )
+                      : Text(
+                          isAr
+                              ? "⚠️ الصورة غير واضحة، حاول تقريب الورقة داخل الإطار"
+                              : "⚠️ Low confidence. Please center the leaf clearly",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.orange,
+                          ),
+                        ),
+
+                  // نسبة التأكد
+                  isPlant
+                      ? Text(
+                          "${isAr ? 'الدقة' : 'Conf'}: ${_pct(_result!.confidence)}",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                          ),
+                        )
+                      : SizedBox(),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 18,
+              color: AppTheme.primaryGreen,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundAction extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _RoundAction({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+}
+
+class _SquareViewFinder extends StatelessWidget {
+  final double size;
+  final double radius;
+  const _SquareViewFinder({required this.size, required this.radius});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+      ),
+      child: CustomPaint(painter: _CornerPainter()),
+    );
+  }
+}
+
+// زر الرجوع
+Widget _buildBackButton(
+  BuildContext context,
+  bool isDark,
+  VoidCallback? onBackToHome,
+) {
+  return SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: CircleAvatar(
+        backgroundColor: Colors.black.withOpacity(0.40),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // ✅ التعديل هنا
+            if (onBackToHome != null) {
+              onBackToHome();
+            } else {
+              Navigator.pop(context);
+            }
+          },
+        ),
+      ),
+    ),
+  );
 }
 
 class _CornerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = Colors.white.withOpacity(0.85)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint = Paint()
+      ..color = Colors.greenAccent
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
 
-    const len = 34.0;
-    const pad = 14.0;
-
-    canvas.drawLine(const Offset(pad, pad), const Offset(pad + len, pad), p);
-    canvas.drawLine(const Offset(pad, pad), const Offset(pad, pad + len), p);
-
-    canvas.drawLine(
-      Offset(size.width - pad, pad),
-      Offset(size.width - pad - len, pad),
-      p,
+    const len = 30.0;
+    // زوايا المربع
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, len)
+        ..lineTo(0, 0)
+        ..lineTo(len, 0),
+      paint,
     );
-    canvas.drawLine(
-      Offset(size.width - pad, pad),
-      Offset(size.width - pad, pad + len),
-      p,
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width - len, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width, len),
+      paint,
     );
-
-    canvas.drawLine(
-      Offset(pad, size.height - pad),
-      Offset(pad + len, size.height - pad),
-      p,
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height - len)
+        ..lineTo(0, size.height)
+        ..lineTo(len, size.height),
+      paint,
     );
-    canvas.drawLine(
-      Offset(pad, size.height - pad),
-      Offset(pad, size.height - pad - len),
-      p,
-    );
-
-    canvas.drawLine(
-      Offset(size.width - pad, size.height - pad),
-      Offset(size.width - pad - len, size.height - pad),
-      p,
-    );
-    canvas.drawLine(
-      Offset(size.width - pad, size.height - pad),
-      Offset(size.width - pad, size.height - pad - len),
-      p,
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width - len, size.height)
+        ..lineTo(size.width, size.height)
+        ..lineTo(size.width, size.height - len),
+      paint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

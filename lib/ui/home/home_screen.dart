@@ -4,6 +4,7 @@ import '../../core/runtime_settings.dart';
 import '../categoray/categoray_screen.dart';
 import '../disease/disease_details_screen.dart';
 import '../../data/database/database_helper.dart';
+import '../settings/help.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -132,13 +133,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               actions: [
                 IconButton(
-                  tooltip: lang == 'ar' ? 'تغيير اللغة' : 'Change language',
-                  onPressed: () async {
-                    final next = (lang == 'ar') ? 'en' : 'ar';
-                    await RuntimeSettings.setLanguage(next);
-                    _updateData(_searchText, next);
+                  //  تحديث الـ tooltip ليدعم اللغتين
+                  tooltip: lang == 'ar' ? 'مركز المساعدة' : 'Help Center',
+
+                  //  وظيفة الانتقال لشاشة المساعدة
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HelpScreen(),
+                      ),
+                    );
                   },
-                  icon: Icon(Icons.language, color: AppTheme.titleTheme),
+
+                  // أيقونة المساعدة مع اللون المناسب
+                  icon: Icon(
+                    Icons.help_outline_outlined,
+                    color: AppTheme
+                        .titleTheme, // سيستخدم اللون المحدد في الثيم الخاص بك
+                  ),
                 ),
               ],
             ),

@@ -53,6 +53,8 @@ flutter:
     - assets/grape/
     - assets/model/data_models_plus_lapels/
     - assets/database/plant_doctorv4.db
+    - assets/labels.txt
+    - assets/model/plant_disease.tflite
 
   fonts:
     - family: Cairo
