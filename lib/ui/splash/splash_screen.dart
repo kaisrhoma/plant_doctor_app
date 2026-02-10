@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:plant_doctor_app/core/app_theme.dart';
 import '../../navigation/bottom_nav.dart';
 import '../onboarding/onboarding_screen.dart';
 
@@ -117,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen>
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
-                color: cs.onSurface,
+                color: isDark ? Colors.white : AppTheme.accentGreen,
               ),
             ),
           ],
