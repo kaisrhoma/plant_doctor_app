@@ -59,9 +59,10 @@ class _SplashScreenState extends State<SplashScreen>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     const double imageSize = 160.0;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
