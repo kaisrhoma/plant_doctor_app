@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _searchFocusNode.dispose(); // ✅ ضروري جداً لتجنب تسريب الذاكرة
+    _searchFocusNode.dispose(); //  ضروري جداً لتجنب تسريب الذاكرة
     super.dispose();
   }
 
@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ✅ دالة إعادة التحميل
+  //  دالة إعادة التحميل
   Future<void> _handleRefresh() async {
     final lang = RuntimeSettings.locale.value.languageCode;
 
@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
 
-      // ✅ تحديث التصنيفات أيضاً عند تغيير اللغة فقط
+      //  تحديث التصنيفات أيضاً عند تغيير اللغة فقط
       _categoriesFuture = DatabaseHelper.instance.getCategories(lang);
     });
   }
@@ -149,8 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // أيقونة المساعدة مع اللون المناسب
                   icon: Icon(
                     Icons.help_outline_outlined,
-                    color: AppTheme
-                        .titleTheme, // سيستخدم اللون المحدد في الثيم الخاص بك
+                    color: isDark
+                        ? Colors.white
+                        : AppTheme
+                              .titleTheme, // سيستخدم اللون المحدد في الثيم الخاص بك
                   ),
                 ),
               ],
@@ -199,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: isDark ? Colors.white54 : Colors.grey,
                         ),
                         filled: true,
-                        // ✅ يتبع الثيم
+                        //  يتبع الثيم
                         fillColor: theme.cardColor,
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 10,
@@ -229,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 10),
 
                     if (!isSearching) ...[
-                      // 📂 التصنيفات
+                      //  التصنيفات
                       Text(
                         lang == 'ar' ? "التصنيفات" : "Categories",
                         style: theme.textTheme.bodyLarge?.copyWith(
@@ -301,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (!isSearching) ...[
                       const SizedBox(height: 10),
 
-                      // 🟩 بطاقة التعريف (✅ دارك مود مضبوط)
+                      //  بطاقة التعريف ( دارك مود مضبوط)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
@@ -464,7 +466,7 @@ class _CategoryItem extends StatelessWidget {
   }
 }
 
-/// ✅ هذا أهم تعديل: لون كارد المشاكل الشائعة يتبع الثيم
+/// هذا أهم تعديل: لون كارد المشاكل الشائعة يتبع الثيم
 class _ProblemCard extends StatelessWidget {
   final String title;
   final String image;
@@ -539,8 +541,8 @@ class _ProblemCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       //fontWeight: FontWeight.bold,
-                      fontSize: 14, // ✅ أكبر في الدارك
-                      color: isDark ? Colors.white : null, // ✅ أبيض في الدارك
+                      fontSize: 12, //  أكبر في الدارك
+                      color: isDark ? Colors.white : null, //  أبيض في الدارك
                     ),
                   ),
                 ),

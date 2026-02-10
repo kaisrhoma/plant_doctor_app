@@ -4,7 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:plant_doctor_app/ui/disease/disease_details_screen.dart';
-
+import 'package:flutter/services.dart';
 import '../../core/app_theme.dart';
 import '../../core/runtime_settings.dart';
 import '../../ai/disease_classifier.dart';
@@ -30,6 +30,10 @@ class _ScanScreenState extends State<ScanScreen>
   String? _croppedImgPath;
   DiseaseResult? _result;
 
+  // 1. تعريف متغيرات لتخزين ألوان الثيم
+  late Color _navBarColor;
+  late Brightness _navIconBrightness;
+
   late final AnimationController _scanLineCtrl;
   final _picker = ImagePicker();
 
@@ -39,11 +43,47 @@ class _ScanScreenState extends State<ScanScreen>
   @override
   void initState() {
     super.initState();
+
+    //  تحويل شريط النظام السفلي (System Nav Bar) إلى الأسود عند الدخول
+    // ضبط اللون الأسود عند الدخول
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
+
     _scanLineCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
     _initCamera();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 2. نقوم بتحديث القيم هنا لأن context لا يزال صالحاً
+    // وسيتم تحديثها تلقائياً إذا تغير الثيم (مثلاً من وضع ليلي لنهاري)
+    _navBarColor = Theme.of(context).scaffoldBackgroundColor;
+    _navIconBrightness = Theme.of(context).brightness == Brightness.dark
+        ? Brightness.light
+        : Brightness.dark;
+  }
+
+  @override
+  void dispose() {
+    // 3. نستخدم المتغيرات المحفوظة مسبقاً بدلاً من Theme.of(context)
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        systemNavigationBarColor: _navBarColor,
+        systemNavigationBarIconBrightness: _navIconBrightness,
+      ),
+    );
+
+    _scanLineCtrl.dispose();
+    _cam?.dispose();
+    super.dispose();
   }
 
   // الدالة التي كانت تسبب الخطأ
@@ -66,13 +106,6 @@ class _ScanScreenState extends State<ScanScreen>
     } catch (e) {
       debugPrint("Camera Error: $e");
     }
-  }
-
-  @override
-  void dispose() {
-    _scanLineCtrl.dispose();
-    _cam?.dispose();
-    super.dispose();
   }
 
   Future<void> _runModel(Uint8List bytes) async {
@@ -152,163 +185,173 @@ class _ScanScreenState extends State<ScanScreen>
     final isAr = RuntimeSettings.locale.value.languageCode == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // 1. معاينة الكاميرا
-          if (_cam != null && _cam!.value.isInitialized)
-            Positioned.fill(child: CameraPreview(_cam!)),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.black, // اللون الأسود
+        systemNavigationBarIconBrightness: Brightness.light, // أيقونات بيضاء
+        statusBarColor: Colors.transparent, // جعل شريط الحالة علوي شفاف
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // 1. معاينة الكاميرا
+            if (_cam != null && _cam!.value.isInitialized)
+              Positioned.fill(child: CameraPreview(_cam!)),
 
-          // 2. زر الخروج العلوي
-          _buildBackButton(context, isDark, widget.onBackToHome),
+            // 2. زر الخروج العلوي
+            _buildBackButton(context, isDark, widget.onBackToHome),
 
-          // 3. منطقة المسح في المنتصف
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // مربع التصوير (Stack)
-                Stack(
-                  alignment: Alignment.center, // يضمن توسيط كل شيء بالداخل
-                  children: [
-                    // 1. المربع المرسوم
-                    _SquareViewFinder(size: _vfSize, radius: _vfR),
-
-                    // 2. النص في المنتصف (يختفي عند البدء بالمسح لجعل الرؤية واضحة)
-                    if (!_busy)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          isAr
-                              ? "ضع النبات في بؤرة التركيز"
-                              : "Place the plant in the center of attention",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5), // لون خافت
-                            fontSize: 13, // حجم صغير
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-
-                    // 3. خط المسح الأخضر (يظهر فقط عند المعالجة)
-                    if (_busy)
-                      AnimatedBuilder(
-                        animation: _scanLineCtrl,
-                        builder: (context, child) {
-                          return Positioned(
-                            top: 10 + (_scanLineCtrl.value * (_vfSize - 20)),
-                            left: 10,
-                            right: 10,
-                            child: Container(
-                              height: 3,
-                              decoration: BoxDecoration(
-                                color: Colors.greenAccent,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.greenAccent.withOpacity(0.6),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 4. البار السفلي الأسود
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: const EdgeInsets.only(
-                top: 20,
-                bottom: 40,
-                left: 30,
-                right: 30,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.9),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
+            // 3. منطقة المسح في المنتصف
+            Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_result != null) _buildResultCard(isAr),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // مربع التصوير (Stack)
+                  Stack(
+                    alignment: Alignment.center, // يضمن توسيط كل شيء بالداخل
                     children: [
-                      // زر الاستوديو
-                      _RoundAction(
-                        icon: Icons.image_outlined,
-                        onTap: () async {
-                          final x = await _picker.pickImage(
-                            source: ImageSource.gallery,
-                          );
-                          if (x != null) {
-                            setState(() => _busy = true);
-                            final b = await File(x.path).readAsBytes();
-                            _imgPath = x.path;
-                            await _runModel(b);
-                            setState(() => _busy = false);
-                          }
-                        },
-                      ),
-                      // زر الالتقاط الكبير
-                      GestureDetector(
-                        onTap: _capture,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                          ),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
+                      // 1. المربع المرسوم
+                      _SquareViewFinder(size: _vfSize, radius: _vfR),
+
+                      // 2. النص في المنتصف (يختفي عند البدء بالمسح لجعل الرؤية واضحة)
+                      if (!_busy)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            isAr
+                                ? "ضع النبات في بؤرة التركيز"
+                                : "Place the plant in the center of attention",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5), // لون خافت
+                              fontSize: 13, // حجم صغير
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.5,
                             ),
-                            child: _busy
-                                ? const CircularProgressIndicator(
-                                    color: Colors.green,
-                                  )
-                                : Icon(
-                                    Icons.camera_alt,
-                                    color: AppTheme.primaryGreen,
-                                    size: 35,
-                                  ),
                           ),
                         ),
-                      ),
-                      // زر الفلاش
-                      _RoundAction(
-                        icon: _flashOn ? Icons.flash_on : Icons.flash_off,
-                        onTap: () {
-                          setState(() => _flashOn = !_flashOn);
-                          _cam?.setFlashMode(
-                            _flashOn ? FlashMode.torch : FlashMode.off,
-                          );
-                        },
-                      ),
+
+                      // 3. خط المسح الأخضر (يظهر فقط عند المعالجة)
+                      if (_busy)
+                        AnimatedBuilder(
+                          animation: _scanLineCtrl,
+                          builder: (context, child) {
+                            return Positioned(
+                              top: 10 + (_scanLineCtrl.value * (_vfSize - 20)),
+                              left: 10,
+                              right: 10,
+                              child: Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: Colors.greenAccent,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.greenAccent.withOpacity(
+                                        0.6,
+                                      ),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // 4. البار السفلي الأسود
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                padding: const EdgeInsets.only(
+                  top: 20,
+                  bottom: 40,
+                  left: 30,
+                  right: 30,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.9),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_result != null) _buildResultCard(isAr),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // زر الاستوديو
+                        _RoundAction(
+                          icon: Icons.image_outlined,
+                          onTap: () async {
+                            final x = await _picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (x != null) {
+                              setState(() => _busy = true);
+                              final b = await File(x.path).readAsBytes();
+                              _imgPath = x.path;
+                              await _runModel(b);
+                              setState(() => _busy = false);
+                            }
+                          },
+                        ),
+                        // زر الالتقاط الكبير
+                        GestureDetector(
+                          onTap: _capture,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                            ),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: _busy
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.green,
+                                    )
+                                  : Icon(
+                                      Icons.camera_alt,
+                                      color: AppTheme.primaryGreen,
+                                      size: 35,
+                                    ),
+                            ),
+                          ),
+                        ),
+                        // زر الفلاش
+                        _RoundAction(
+                          icon: _flashOn ? Icons.flash_on : Icons.flash_off,
+                          onTap: () {
+                            setState(() => _flashOn = !_flashOn);
+                            _cam?.setFlashMode(
+                              _flashOn ? FlashMode.torch : FlashMode.off,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -318,6 +361,7 @@ class _ScanScreenState extends State<ScanScreen>
     return InkWell(
       onTap: () {
         if (_result == null) return;
+        if (!isPlant) return;
 
         Navigator.push(
           context,
@@ -399,7 +443,7 @@ class _ScanScreenState extends State<ScanScreen>
                   // نسبة التأكد
                   isPlant
                       ? Text(
-                          "${isAr ? 'الدقة' : 'Conf'}: ${_pct(_result!.confidence)}",
+                          "${isAr ? 'الثقة' : 'Conf'}: ${_pct(_result!.confidence)}",
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 11,

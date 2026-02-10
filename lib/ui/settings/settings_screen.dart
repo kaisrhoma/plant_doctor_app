@@ -342,9 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: t.brightness == Brightness.dark
-          ? t.cardColor
-          : AppTheme.backraoundCard,
+      color: t.brightness == Brightness.dark ? t.cardColor : Colors.white,
       surfaceTintColor: Colors.transparent,
       child: ListTile(
         leading: Icon(icon),
