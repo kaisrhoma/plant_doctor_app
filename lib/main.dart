@@ -86,7 +86,7 @@ class PlantDoctorApp extends StatelessWidget {
             },
 
             home: SplashScreen(seenOnboarding: _seenOnboarding),
-            // home: OnboardingScreen(),
+            //home: OnboardingScreen(),
           ),
         );
       },

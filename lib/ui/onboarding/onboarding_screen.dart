@@ -348,7 +348,7 @@ class _PrivacyPolicySheet extends StatelessWidget {
           return Container(
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.black
+                  ? Color(0xFF1E1E1E)
                   : Colors.white,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(22),

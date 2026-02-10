@@ -172,7 +172,7 @@ class AppTheme {
         bodyMedium: TextStyle(
           fontSize: 16,
           fontFamily: 'Cairo',
-         // fontWeight: FontWeight.w600,
+          // fontWeight: FontWeight.w600,
           color: Colors.white, // ✅ أبيض
         ),
 
