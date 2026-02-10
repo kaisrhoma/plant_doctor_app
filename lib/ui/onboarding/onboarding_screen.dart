@@ -82,9 +82,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isLast = pages[_index].isLast;
+    final t = Theme.of(context);
+    final isDark = t.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -151,9 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               onTap: _openPrivacySheet,
                               child: Text(
                                 'سياسة الخصوصية',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       color: AppTheme.accentGreen,
                                       decoration: TextDecoration.underline,
@@ -218,10 +218,12 @@ class _OnboardingItem extends StatelessWidget {
           if (page.titleTop.isNotEmpty)
             Text(
               page.titleTop,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.titleTheme,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : AppTheme.titleTheme,
               ),
             ),
 
@@ -241,10 +243,12 @@ class _OnboardingItem extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   page.titleMain2,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.titleTheme,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppTheme.titleTheme,
                   ),
                 ),
               ],
@@ -342,9 +346,13 @@ class _PrivacyPolicySheet extends StatelessWidget {
         maxChildSize: 0.92,
         builder: (context, controller) {
           return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black
+                  : Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(22),
+              ),
             ),
             child: Column(
               children: [
@@ -365,6 +373,7 @@ class _PrivacyPolicySheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 Expanded(
                   child: Scrollbar(
+                    controller: controller,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
                       controller: controller,
@@ -372,6 +381,7 @@ class _PrivacyPolicySheet extends StatelessWidget {
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SizedBox(height: 20),
                           _H('سياسة الخصوصية لتطبيق Doctor Plant'),
                           SizedBox(height: 10),
                           _P(
@@ -380,9 +390,15 @@ class _PrivacyPolicySheet extends StatelessWidget {
                           SizedBox(height: 14),
                           _H('1) المعلومات التي نجمعها'),
                           SizedBox(height: 8),
-                          _B('• الصور التي تقوم برفعها لتحليل حالة النبات (إن قمت بذلك).'),
-                          _B('• معلومات تقنية عامة مثل نوع الجهاز وإصدار النظام لتحسين الأداء.'),
-                          _B('• لا نجمع معلومات شخصية حساسة إلا إذا أدخلتها بنفسك داخل التطبيق.'),
+                          _B(
+                            '• الصور التي تقوم برفعها لتحليل حالة النبات (إن قمت بذلك).',
+                          ),
+                          _B(
+                            '• معلومات تقنية عامة مثل نوع الجهاز وإصدار النظام لتحسين الأداء.',
+                          ),
+                          _B(
+                            '• لا نجمع معلومات شخصية حساسة إلا إذا أدخلتها بنفسك داخل التطبيق.',
+                          ),
                           SizedBox(height: 14),
                           _H('2) كيف نستخدم المعلومات'),
                           SizedBox(height: 8),
@@ -405,7 +421,9 @@ class _PrivacyPolicySheet extends StatelessWidget {
                           _H('5) حقوقك'),
                           SizedBox(height: 8),
                           _B('• يمكنك التوقف عن استخدام التطبيق في أي وقت.'),
-                          _B('• يمكنك طلب حذف بياناتك إن كانت محفوظة لدينا (إن وُجدت).'),
+                          _B(
+                            '• يمكنك طلب حذف بياناتك إن كانت محفوظة لدينا (إن وُجدت).',
+                          ),
                           _B('• يمكنك مراجعة هذه السياسة في أي وقت.'),
                           SizedBox(height: 14),
                           _H('6) تحديثات السياسة'),
@@ -414,8 +432,10 @@ class _PrivacyPolicySheet extends StatelessWidget {
                             'قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. سنعرض النسخة المحدثة داخل التطبيق عند توفرها.',
                           ),
                           SizedBox(height: 18),
-                          _P('باستخدامك للتطبيق فإنك توافق على سياسة الخصوصية هذه.'),
-                          SizedBox(height: 12),
+                          _P(
+                            'باستخدامك للتطبيق فإنك توافق على سياسة الخصوصية هذه.',
+                          ),
+                          SizedBox(height: 20),
                         ],
                       ),
                     ),
@@ -439,11 +459,16 @@ class _PrivacyPolicySheet extends StatelessWidget {
                               ),
                             ),
                             onPressed: () => Navigator.pop(context),
-                            child: const Text(
+                            child: Text(
                               'إغلاق',
                               style: TextStyle(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.bold,
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : AppTheme.titleTheme,
                               ),
                             ),
                           ),
@@ -490,7 +515,7 @@ class _H extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(t, style: Theme.of(context).textTheme.bodyLarge);
+    return Text(t, style: Theme.of(context).textTheme.bodyMedium);
   }
 }
 
@@ -500,7 +525,7 @@ class _P extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(t, style: Theme.of(context).textTheme.bodyMedium);
+    return Text(t, style: Theme.of(context).textTheme.bodySmall);
   }
 }
 
@@ -512,7 +537,7 @@ class _B extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(t, style: Theme.of(context).textTheme.bodyMedium),
+      child: Text(t, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }

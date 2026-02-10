@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:plant_doctor_app/ui/onboarding/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_theme.dart';
@@ -84,7 +85,8 @@ class PlantDoctorApp extends StatelessWidget {
               );
             },
 
-            home: SplashScreen(seenOnboarding: _seenOnboarding),
+            // home: SplashScreen(seenOnboarding: _seenOnboarding),
+            home: OnboardingScreen(),
           ),
         );
       },

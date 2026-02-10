@@ -56,7 +56,7 @@ flutter_native_splash:
   android_12:
     image: assets/icon/splash.png
     color: "#FFFFFF"
-    color_dark: "##121212"
+    color_dark: "#121212"
     # أندرويد 12 لا يقبل Padding برمجي، يعتمد كلياً على حجم الصورة نفسها
     
   fullscreen: true
