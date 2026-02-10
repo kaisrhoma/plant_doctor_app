@@ -357,7 +357,7 @@ class _ScanScreenState extends State<ScanScreen>
   }
 
   Widget _buildResultCard(bool isAr) {
-    bool isPlant = _result!.confidence >= 0.6 ? true : false;
+    bool isPlant = _result!.confidence >= 0.7 ? true : false;
     return InkWell(
       onTap: () {
         if (_result == null) return;

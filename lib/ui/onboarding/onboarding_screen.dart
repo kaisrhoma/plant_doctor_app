@@ -126,7 +126,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             const SizedBox(height: 16),
 
-            // ✅ Checkbox فوق زر "ابدأ" وبالمنتصف (يظهر فقط في الصفحة الأخيرة)
+            //  Checkbox فوق زر "ابدأ" وبالمنتصف (يظهر فقط في الصفحة الأخيرة)
             if (isLast) ...[
               Center(
                 child: Directionality(
@@ -170,7 +170,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const SizedBox(height: 10),
             ],
 
-            // ✅ زر تحت
+            //  زر تحت
             Padding(
               padding: const EdgeInsets.only(bottom: 18),
               child: isLast

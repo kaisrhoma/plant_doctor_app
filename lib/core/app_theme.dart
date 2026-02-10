@@ -115,7 +115,7 @@ class AppTheme {
       canvasColor: const Color(0xFF121212),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF121212), // ✅ بدل transparent
+        backgroundColor: Color(0xFF121212), // بدل transparent
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

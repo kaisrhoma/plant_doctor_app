@@ -42,6 +42,27 @@ dev_dependencies:
   # أيقونة التطبيق
   flutter_launcher_icons: ^0.13.1
 
+  # splash screen
+  flutter_native_splash: ^2.4.0
+
+# flutter native splash settings
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/icon/splash.png
+  
+  color_dark: "#121212"
+  image_dark: assets/icon/splash.png
+
+  android_12:
+    image: assets/icon/splash.png
+    color: "#FFFFFF"
+    color_dark: "##121212"
+    # أندرويد 12 لا يقبل Padding برمجي، يعتمد كلياً على حجم الصورة نفسها
+    
+  fullscreen: true
+  android: true
+  ios: true
+
 # إعدادات أيقونة التطبيق
 flutter_launcher_icons:
   android: true
