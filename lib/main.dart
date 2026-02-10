@@ -77,7 +77,7 @@ class PlantDoctorApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
 
-            // ✅ اتجاه النص على مستوى التطبيق كله
+            //اتجاه النص على مستوى التطبيق كله
             builder: (context, child) {
               return Directionality(
                 textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
