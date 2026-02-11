@@ -15,39 +15,41 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _index = 0;
-
   bool _acceptedPrivacy = false;
 
-  final List<_OnboardPage> pages = const [
-    _OnboardPage(
-      lottiePath: 'assets/lottie/scanning_plant.json',
-      titleTop: 'مرحبًا بك في',
-      titleMain1: 'Doctor',
-      titleMain2: ' Plant',
-      subtitle: '',
-    ),
-    _OnboardPage(
-      lottiePath: 'assets/lottie/plant_growing.json',
-      titleTop: '',
-      titleMain1: '',
-      titleMain2: '',
-      subtitle:
-          'ابدأ مع Doctor Plant واكتشف كيف يمكن تشخيص أمراض النبات بسهولة وإيجاد الحلول المناسبة.',
-    ),
-    _OnboardPage(
-      lottiePath: 'assets/lottie/get_started.json',
-      titleTop: '',
-      titleMain1: 'Doctor',
-      titleMain2: ' Plant',
-      subtitle: 'هيا نبدأ الآن!',
-      isLast: true,
-    ),
-  ];
+  // تحويل القائمة إلى Getter لتحديث النصوص بناءً على لغة السياق
+  List<_OnboardPage> _getPages(bool isAr) {
+    return [
+      _OnboardPage(
+        lottiePath: 'assets/lottie/scanning_plant.json',
+        titleTop: isAr ? 'مرحبًا بك في' : 'Welcome to',
+        titleMain1: 'Doctor',
+        titleMain2: ' Plant',
+        subtitle: '',
+      ),
+      _OnboardPage(
+        lottiePath: 'assets/lottie/plant_growing.json',
+        titleTop: '',
+        titleMain1: '',
+        titleMain2: '',
+        subtitle: isAr
+            ? 'ابدأ مع Doctor Plant واكتشف كيف يمكن تشخيص أمراض النبات بسهولة وإيجاد الحلول المناسبة.'
+            : 'Start with Doctor Plant and discover how to easily diagnose plant diseases and find the right solutions.',
+      ),
+      _OnboardPage(
+        lottiePath: 'assets/lottie/get_started.json',
+        titleTop: '',
+        titleMain1: 'Doctor',
+        titleMain2: ' Plant',
+        subtitle: isAr ? 'هيا نبدأ الآن!' : 'Let\'s get started now!',
+        isLast: true,
+      ),
+    ];
+  }
 
   Future<void> _finish() async {
     final p = await SharedPreferences.getInstance();
     await p.setBool('seen_onboarding', true);
-
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const BottomNavScreen()),
@@ -55,10 +57,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
-    if (_index == pages.length - 1) {
-      _finish();
-      return;
-    }
     _controller.nextPage(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
@@ -81,9 +79,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String languageCode = Localizations.localeOf(context).languageCode;
+    final bool isAr = languageCode == 'ar';
+    final pages = _getPages(isAr); // جلب الصفحات باللغة المناسبة
     final isLast = pages[_index].isLast;
-    final t = Theme.of(context);
-    final isDark = t.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -96,17 +96,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 itemCount: pages.length,
                 onPageChanged: (i) => setState(() {
                   _index = i;
-
-                  // اختياري: لو خرج من الصفحة الأخيرة نلغي الموافقة
                   if (!pages[_index].isLast) _acceptedPrivacy = false;
                 }),
                 itemBuilder: (context, i) => _OnboardingItem(page: pages[i]),
               ),
             ),
 
-            const SizedBox(height: 8),
-
-            // dots
+            // Dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -128,49 +124,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             const SizedBox(height: 16),
 
-            //  Checkbox فوق زر "ابدأ" وبالمنتصف (يظهر فقط في الصفحة الأخيرة)
             if (isLast) ...[
               Center(
                 child: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: IntrinsicWidth(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Checkbox(
-                          value: _acceptedPrivacy,
-                          onChanged: (v) =>
-                              setState(() => _acceptedPrivacy = v ?? false),
-                          activeColor: AppTheme.primaryGreen,
-                        ),
-                        Wrap(
-                          children: [
-                            Text(
-                              'أوافق على ',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            GestureDetector(
-                              onTap: _openPrivacySheet,
-                              child: Text(
-                                'سياسة الخصوصية',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: AppTheme.accentGreen,
-                                      decoration: TextDecoration.underline,
-                                    ),
+                  textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: _acceptedPrivacy,
+                        onChanged: (v) =>
+                            setState(() => _acceptedPrivacy = v ?? false),
+                        activeColor: AppTheme.primaryGreen,
+                      ),
+                      GestureDetector(
+                        onTap: _openPrivacySheet,
+                        child: RichText(
+                          text: TextSpan(
+                            style: Theme.of(context).textTheme.bodySmall,
+                            children: [
+                              TextSpan(
+                                text: isAr ? 'أوافق على ' : 'I agree to the ',
                               ),
-                            ),
-                          ],
+                              TextSpan(
+                                text: isAr
+                                    ? 'سياسة الخصوصية'
+                                    : 'Privacy Policy',
+                                style: const TextStyle(
+                                  color: AppTheme.accentGreen,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 10),
             ],
 
-            //  زر تحت
             Padding(
               padding: const EdgeInsets.only(bottom: 18),
               child: isLast
@@ -186,16 +181,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                         onPressed: _acceptedPrivacy ? _finish : null,
-                        child: const Text(
-                          'ابدأ',
-                          style: TextStyle(
+                        child: Text(
+                          isAr ? 'ابدأ' : 'Get Started',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     )
-                  : _CircleArrowButton(onTap: _next),
+                  : _CircleArrowButton(onTap: _next, isAr: isAr),
             ),
           ],
         ),
@@ -203,6 +198,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
+
+class _CircleArrowButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isAr;
+  const _CircleArrowButton({required this.onTap, required this.isAr});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppTheme.primaryGreen.withOpacity(0.25),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: const BoxDecoration(
+              color: AppTheme.primaryGreen,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              // عكس السهم إذا كانت اللغة عربية
+              isAr ? Icons.arrow_back : Icons.arrow_forward,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ... بقية كلاسات _OnboardingItem و _PrivacyPolicySheet (التي قمت بتعديلها سابقاً) تظل كما هي ...
 
 class _OnboardingItem extends StatelessWidget {
   final _OnboardPage page;
@@ -278,42 +312,6 @@ class _OnboardingItem extends StatelessWidget {
   }
 }
 
-class _CircleArrowButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _CircleArrowButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkResponse(
-      onTap: onTap,
-      radius: 36,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: AppTheme.primaryGreen.withOpacity(0.25),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Container(
-            width: 46,
-            height: 46,
-            decoration: const BoxDecoration(
-              color: AppTheme.primaryGreen,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.arrow_forward,
-              color: Colors.white,
-              size: 26,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _OnboardPage {
   final String lottiePath;
   final String titleTop;
@@ -338,8 +336,10 @@ class _PrivacyPolicySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String languageCode = Localizations.localeOf(context).languageCode;
+    final bool isAr = languageCode == 'ar';
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: DraggableScrollableSheet(
         initialChildSize: 0.72,
         minChildSize: 0.45,
@@ -367,7 +367,7 @@ class _PrivacyPolicySheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'سياسة الخصوصية',
+                  isAr ? 'سياسة الخصوصية' : 'Privacy Policy',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 12),
@@ -378,63 +378,120 @@ class _PrivacyPolicySheet extends StatelessWidget {
                     child: SingleChildScrollView(
                       controller: controller,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 20),
-                          _H('سياسة الخصوصية لتطبيق Doctor Plant'),
+                          const SizedBox(height: 20),
+
+                          // --- بداية محتوى السياسة المترجم ---
+                          _H(
+                            isAr
+                                ? 'سياسة الخصوصية لتطبيق Doctor Plant'
+                                : 'Privacy Policy for Doctor Plant',
+                          ),
                           SizedBox(height: 10),
                           _P(
-                            'نحن نحترم خصوصيتك ونلتزم بحماية بياناتك. توضح هذه السياسة كيفية جمع المعلومات واستخدامها وحمايتها عند استخدامك للتطبيق.',
+                            isAr
+                                ? 'نحن نحترم خصوصيتك ونلتزم بحماية بياناتك. توضح هذه السياسة كيفية جمع المعلومات واستخدامها وحمايتها عند استخدامك للتطبيق.'
+                                : 'We respect your privacy and are committed to protecting your data. This policy explains how we collect, use, and protect information when you use the app.',
                           ),
+
                           SizedBox(height: 14),
-                          _H('1) المعلومات التي نجمعها'),
+                          _H(
+                            isAr
+                                ? '1) المعلومات التي نجمعها'
+                                : '1) Information We Collect',
+                          ),
                           SizedBox(height: 8),
                           _B(
-                            '• الصور التي تقوم برفعها لتحليل حالة النبات (إن قمت بذلك).',
+                            isAr
+                                ? '• الصور التي تقوم برفعها لتحليل حالة النبات (إن قمت بذلك).'
+                                : '• Images you upload for plant health analysis (if applicable).',
                           ),
                           _B(
-                            '• معلومات تقنية عامة مثل نوع الجهاز وإصدار النظام لتحسين الأداء.',
+                            isAr
+                                ? '• معلومات تقنية عامة مثل نوع الجهاز وإصدار النظام لتحسين الأداء.'
+                                : '• General technical info like device type and system version to improve performance.',
                           ),
                           _B(
-                            '• لا نجمع معلومات شخصية حساسة إلا إذا أدخلتها بنفسك داخل التطبيق.',
+                            isAr
+                                ? '• لا نجمع معلومات شخصية حساسة إلا إذا أدخلتها بنفسك داخل التطبيق.'
+                                : '• We do not collect sensitive personal info unless you enter it manually.',
                           ),
+
                           SizedBox(height: 14),
-                          _H('2) كيف نستخدم المعلومات'),
+                          _H(
+                            isAr
+                                ? '2) كيف نستخدم المعلومات'
+                                : '2) How We Use Information',
+                          ),
                           SizedBox(height: 8),
-                          _B('• لتحليل أمراض النبات وتقديم نتائج/توصيات.'),
-                          _B('• لتحسين تجربة المستخدم وإصلاح الأخطاء.'),
-                          _B('• لأغراض الدعم الفني عند الحاجة.'),
+                          _B(
+                            isAr
+                                ? '• لتحليل أمراض النبات وتقديم نتائج/توصيات.'
+                                : '• To analyze plant diseases and provide results/recommendations.',
+                          ),
+                          _B(
+                            isAr
+                                ? '• لتحسين تجربة المستخدم وإصلاح الأخطاء.'
+                                : '• To improve user experience and fix bugs.',
+                          ),
+                          _B(
+                            isAr
+                                ? '• لأغراض الدعم الفني عند الحاجة.'
+                                : '• For technical support purposes when neede',
+                          ),
                           SizedBox(height: 14),
-                          _H('3) مشاركة البيانات'),
+                          _H(isAr ? '3) مشاركة البيانات' : '3) Data Sharing'),
                           SizedBox(height: 8),
                           _P(
-                            'لا نقوم ببيع بياناتك أو مشاركتها مع أطراف ثالثة لأغراض تسويقية. قد نشارك بيانات محدودة فقط عند الضرورة لتقديم الخدمة أو الامتثال للقانون.',
+                            isAr
+                                ? 'لا نقوم ببيع بياناتك أو مشاركتها مع أطراف ثالثة لأغراض تسويقية. قد نشارك بيانات محدودة فقط عند الضرورة لتقديم الخدمة أو الامتثال للقانون.'
+                                : 'We do not sell or share your data with third parties for marketing. We may share limited data only when necessary to provide the service or comply with the law.',
                           ),
+
                           SizedBox(height: 14),
-                          _H('4) الأمان وحفظ البيانات'),
+                          _H(
+                            isAr
+                                ? '4) الأمان وحفظ البيانات'
+                                : '4) Security and Data Retention',
+                          ),
                           SizedBox(height: 8),
                           _P(
-                            'نطبق إجراءات معقولة لحماية بياناتك من الوصول غير المصرح به. ومع ذلك لا توجد طريقة آمنة 100% على الإنترنت.',
+                            isAr
+                                ? 'نطبق إجراءات معقولة لحماية بياناتك من الوصول غير المصرح به. ومع ذلك لا توجد طريقة آمنة 100% على الإنترنت.'
+                                : 'We implement reasonable measures to protect your data. However, no method of internet transmission is 100% secure.',
                           ),
+
                           SizedBox(height: 14),
-                          _H('5) حقوقك'),
+                          _H(isAr ? '5) حقوقك' : '5) Your Rights'),
                           SizedBox(height: 8),
-                          _B('• يمكنك التوقف عن استخدام التطبيق في أي وقت.'),
                           _B(
-                            '• يمكنك طلب حذف بياناتك إن كانت محفوظة لدينا (إن وُجدت).',
+                            isAr
+                                ? '• يمكنك التوقف عن استخدام التطبيق في أي وقت.'
+                                : '• You can stop using the app at any time.',
                           ),
-                          _B('• يمكنك مراجعة هذه السياسة في أي وقت.'),
+                          _B(
+                            isAr
+                                ? '• يمكنك طلب حذف بياناتك إن كانت محفوظة لدينا.'
+                                : '• You can request to delete your data if stored by us',
+                          ),
                           SizedBox(height: 14),
-                          _H('6) تحديثات السياسة'),
+                          _H(isAr ? '6) تحديثات السياسة' : '6) Policy Updates'),
                           SizedBox(height: 8),
                           _P(
-                            'قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. سنعرض النسخة المحدثة داخل التطبيق عند توفرها.',
+                            isAr
+                                ? 'قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. سنعرض النسخة المحدثة داخل التطبيق عند توفرها.'
+                                : 'We may update this policy from time to time. The updated version will be available within the app.',
                           ),
+
                           SizedBox(height: 18),
                           _P(
-                            'باستخدامك للتطبيق فإنك توافق على سياسة الخصوصية هذه.',
+                            isAr
+                                ? 'باستخدامك للتطبيق فإنك توافق على سياسة الخصوصية هذه.'
+                                : 'By using the app, you agree to this Privacy Policy.',
                           ),
+
                           SizedBox(height: 20),
                         ],
                       ),
@@ -460,7 +517,7 @@ class _PrivacyPolicySheet extends StatelessWidget {
                             ),
                             onPressed: () => Navigator.pop(context),
                             child: Text(
-                              'إغلاق',
+                              isAr ? 'إغلاق' : 'Close',
                               style: TextStyle(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.bold,
@@ -487,8 +544,8 @@ class _PrivacyPolicySheet extends StatelessWidget {
                               ),
                             ),
                             onPressed: onAccept,
-                            child: const Text(
-                              'أوافق',
+                            child: Text(
+                              isAr ? 'أوافق' : 'I Agree',
                               style: TextStyle(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.bold,

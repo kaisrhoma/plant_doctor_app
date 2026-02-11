@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +8,7 @@ import '../../core/app_theme.dart';
 import '../../core/runtime_settings.dart';
 import '../../ai/disease_classifier.dart';
 import '../../ai/image_crop_utils.dart';
+import '../../data/database/database_helper.dart';
 
 class ScanScreen extends StatefulWidget {
   // ✅ أضف هذا السطر لاستلام الدالة من الـ BottomNav
@@ -151,6 +151,25 @@ class _ScanScreenState extends State<ScanScreen>
       await file.writeAsBytes(croppedBytes);
 
       final res = await DiseaseClassifier.instance.classify(croppedBytes);
+
+      // --- التعديل هنا ---
+      // --- التعديل هنا لإصلاح مشكلة اختلاط الأكواد بالأسماء المترجمة ---
+      if (res.confidence >= 0.6) {
+        final dbData = await DatabaseHelper.instance.getDiseaseFullDetails(
+          diseaseCode: res.diseaseCode, // نستخدم الكود الأصلي للبحث
+          plantCode: res.plantCode, // نستخدم الكود الأصلي للبحث
+          langCode: RuntimeSettings.locale.value.languageCode,
+        );
+
+        if (dbData != null) {
+          // نحدث حقول العرض فقط (UI)
+          // لا تلمس res.diseaseCode أو res.plantCode نهائياً هنا
+          res.title = dbData['disease_name'] ?? res.title;
+          res.plant = dbData['plant_name'] ?? res.plant;
+        }
+      }
+      // -------------------------------------------------------
+      // ------------------
 
       if (mounted) {
         setState(() {
@@ -357,7 +376,7 @@ class _ScanScreenState extends State<ScanScreen>
   }
 
   Widget _buildResultCard(bool isAr) {
-    bool isPlant = _result!.confidence >= 0.7 ? true : false;
+    bool isPlant = _result!.confidence >= 0.6 ? true : false;
     return InkWell(
       onTap: () {
         if (_result == null) return;
@@ -415,7 +434,7 @@ class _ScanScreenState extends State<ScanScreen>
                         : "Unknown",
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 14,
                       color: Colors.black87,
                     ),
                   ),
