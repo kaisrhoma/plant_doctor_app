@@ -218,7 +218,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // ✅ بدل Colors.white
+        //  بدل Colors.white
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: cs.onSurface.withOpacity(0.06), width: 1),
@@ -251,7 +251,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen> {
           Text(
             content,
             style: theme.textTheme.bodySmall?.copyWith(
-              // ✅ بدل AppTheme.titleTheme (الثابت)
+              //  بدل AppTheme.titleTheme (الثابت)
               color: cs.onSurface.withOpacity(0.85),
             ),
           ),

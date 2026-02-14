@@ -235,10 +235,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         lang == 'ar' ? "التصنيفات" : "Categories",
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 18, // ✅ أكبر في الدارك
+                          fontSize: 18, //  أكبر في الدارك
                           color: isDark
                               ? Colors.white
-                              : null, // ✅ أبيض في الدارك
+                              : null, // أبيض في الدارك
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -368,8 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? (lang == 'ar' ? "نتائج البحث" : "Search results")
                           : (lang == 'ar' ? "مشاكل شائعة" : "Common problems"),
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: isDark ? 20 : 18, // ✅ أكبر في الدارك
-                        color: isDark ? Colors.white : null, // ✅ أبيض في الدارك
+                        fontSize: isDark ? 20 : 18, //  أكبر في الدارك
+                        color: isDark ? Colors.white : null, //  أبيض في الدارك
                         fontWeight: FontWeight.bold,
                       ),
                     ),

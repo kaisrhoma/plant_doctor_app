@@ -20,14 +20,14 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    // ✅ ضع القائمة هنا داخل الـ build
+    //  ضع القائمة هنا داخل الـ build
     final List<Widget> screens = [
       const HomeScreen(),
       ScanScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
       const SettingsScreen(),
     ];
 
-    // ✅ متغير للتحقق مما إذا كنا في شاشة الكاميرا
+    //  متغير للتحقق مما إذا كنا في شاشة الكاميرا
     final bool isScanning = _currentIndex == 1;
 
     return PopScope(
@@ -50,7 +50,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
         extendBody: true,
         body: screens[_currentIndex],
 
-        // 📸 زر الكاميرا الدائري - يختفي عند النقر عليه
+        //  زر الكاميرا الدائري - يختفي عند النقر عليه
         floatingActionButton: isScanning
             ? null
             : SizedBox(
@@ -70,7 +70,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
               ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-        // 🛑 شريط التنقل السفلي - يختفي عند الدخول لوضع الكاميرا
+        //  شريط التنقل السفلي - يختفي عند الدخول لوضع الكاميرا
         bottomNavigationBar: isScanning
             ? const SizedBox.shrink() // مساحة فارغة لا تشغل حيزاً
             : Container(
@@ -97,7 +97,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
                     padding: EdgeInsets.zero,
                     child: Row(
                       children: [
-                        // 🏠 زر الرئيسية
+                        //  زر الرئيسية
                         Expanded(
                           child: InkWell(
                             onTap: () => setState(() => _currentIndex = 0),
@@ -114,7 +114,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
                         ),
 
                         const SizedBox(width: 80), // فراغ الـ FAB
-                        // ⚙️ زر الإعدادات
+                        //  زر الإعدادات
                         Expanded(
                           child: InkWell(
                             onTap: () => setState(() => _currentIndex = 2),

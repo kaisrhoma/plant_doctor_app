@@ -68,7 +68,7 @@ class PlantDoctorApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: RuntimeSettings.themeMode.value,
 
-            // ✅ اللغة تنعكس على التطبيق كله
+            //  اللغة تنعكس على التطبيق كله
             locale: loc,
             supportedLocales: const [Locale('ar'), Locale('en')],
             localizationsDelegates: const [

@@ -36,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _noti = v);
   }
 
-  // ✅ BottomSheet للتراخيص: عناوين ملوّنة + نص صغير رمادي (لايت)
+  //BottomSheet للتراخيص: عناوين ملوّنة + نص صغير رمادي (لايت)
   Future<void> _licensesSheet({required bool isAr}) async {
     final t = Theme.of(context);
     final isDark = t.brightness == Brightness.dark;
@@ -130,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ✅ About dialog مخصص (بدون زر "الاطلاع على التراخيص" اللي فوق)
+  //  About dialog مخصص (بدون زر "الاطلاع على التراخيص" اللي فوق)
   void _about({required bool isAr}) {
     final t = Theme.of(context);
     final isDark = t.brightness == Brightness.dark;
@@ -182,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: t.textTheme.bodyMedium,
           ),
 
-          // ✅ فقط الزر اللي تحت (الاطلاع على التراخيص) + إغلاق
+          //  فقط الزر اللي تحت (الاطلاع على التراخيص) + إغلاق
           actions: [
             TextButton(
               onPressed: () {
@@ -243,7 +243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // 🌐 اللغة
+                    //  اللغة
                     _tile(
                       icon: Icons.language_outlined,
                       title: isAr ? 'اللغة' : 'Language',
@@ -296,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
 
-                    // 🌙 الوضع الليلي
+                    //  الوضع الليلي
                     _tile(
                       icon: Icons.dark_mode_outlined,
                       title: isAr ? 'الوضع الليلي' : 'Dark mode',
@@ -307,7 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () {},
                     ),
 
-                    // 🔔 الإشعارات
+                    //  الإشعارات
                     _tile(
                       icon: Icons.notifications_none,
                       title: isAr ? 'الإشعارات' : 'Notifications',
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () {},
                     ),
 
-                    // ℹ️ حول التطبيق
+                    // ℹ حول التطبيق
                     _tile(
                       icon: Icons.info_outline,
                       title: isAr ? 'حول التطبيق' : 'About',
@@ -357,7 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// ✅ صورة خلفية بانحناء بيضاوي ناعم
+///  صورة خلفية بانحناء بيضاوي ناعم
 class _CurvedHeaderImage extends StatelessWidget {
   final String imagePath;
   final double height;

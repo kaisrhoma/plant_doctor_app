@@ -41,7 +41,7 @@ class AppTheme {
         ),
       ),
 
-      // ✅ يساعد الكروت تتبع الثيم
+      //  يساعد الكروت تتبع الثيم
       cardColor: Colors.white,
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -50,13 +50,13 @@ class AppTheme {
         margin: EdgeInsets.zero,
       ),
 
-      // ✅ يساعد ListTile
+      //  يساعد ListTile
       listTileTheme: const ListTileThemeData(
         iconColor: titleTheme,
         textColor: titleTheme,
       ),
 
-      // ✅ Dialog / BottomSheet يتبع الثيم بدل ما يبقى غريب في الدارك
+      //  Dialog / BottomSheet يتبع الثيم بدل ما يبقى غريب في الدارك
       dialogTheme: const DialogThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -94,7 +94,7 @@ class AppTheme {
     );
   }
 
-  /// 🌙 Dark Theme (نفس الأصلي لكن مضبوط)
+  ///  Dark Theme (نفس الأصلي لكن مضبوط)
   static ThemeData get darkTheme {
     final cs = ColorScheme.fromSeed(
       seedColor: primaryGreen,
@@ -128,7 +128,7 @@ class AppTheme {
         ),
       ),
 
-      // ✅ مهم: الكروت والليست تايل والديا로그 يلتزمون بالدارك
+      // مهم: الكروت والليست تايل والديا로그 يلتزمون بالدارك
       cardColor: const Color(0xFF1E1E1E),
       cardTheme: const CardThemeData(
         color: Color(0xFF1E1E1E),
@@ -152,31 +152,31 @@ class AppTheme {
       ),
 
       textTheme: const TextTheme(
-        // ✅ العنوان الرئيسي (أبيض قوي + Bold)
+        //  العنوان الرئيسي (أبيض قوي + Bold)
         titleLarge: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.bold,
           fontFamily: 'Cairo',
-          color: Colors.white, // ✅ أبيض صافي (غامق)
+          color: Colors.white, //  أبيض صافي (غامق)
         ),
 
-        // ✅ عنوان فرعي/قسم (أبيض عادي)
+        //  عنوان فرعي/قسم (أبيض عادي)
         bodyLarge: TextStyle(
           fontSize: 18,
           fontFamily: 'Cairo',
           fontWeight: FontWeight.bold,
-          color: Color.fromARGB(255, 255, 255, 255), // ✅ أبيض عادي/أخف
+          color: Color.fromARGB(255, 255, 255, 255), // أبيض عادي/أخف
         ),
 
-        // ✅ نص/عنوان فرعي أصغر (أبيض)
+        //  نص/عنوان فرعي أصغر (أبيض)
         bodyMedium: TextStyle(
           fontSize: 16,
           fontFamily: 'Cairo',
           // fontWeight: FontWeight.w600,
-          color: Colors.white, // ✅ أبيض
+          color: Colors.white, //  أبيض
         ),
 
-        // ✅ نص صغير (رمادي فاتح)
+        //  نص صغير (رمادي فاتح)
         bodySmall: TextStyle(
           fontSize: 12,
           fontFamily: 'Cairo',

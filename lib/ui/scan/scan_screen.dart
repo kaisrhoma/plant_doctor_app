@@ -11,7 +11,7 @@ import '../../ai/image_crop_utils.dart';
 import '../../data/database/database_helper.dart';
 
 class ScanScreen extends StatefulWidget {
-  // ✅ أضف هذا السطر لاستلام الدالة من الـ BottomNav
+  //  أضف هذا السطر لاستلام الدالة من الـ BottomNav
   final VoidCallback? onBackToHome;
 
   const ScanScreen({super.key, this.onBackToHome});
@@ -538,7 +538,7 @@ Widget _buildBackButton(
         child: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // ✅ التعديل هنا
+          
             if (onBackToHome != null) {
               onBackToHome();
             } else {

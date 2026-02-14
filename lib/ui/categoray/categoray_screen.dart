@@ -55,7 +55,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       _isLoading = false;
     });
 
-    // ✅ لو في بحث مكتوب، طبّقه مرة ثانية بعد التحميل
+    //  لو في بحث مكتوب، طبّقه مرة ثانية بعد التحميل
     final q = _searchController.text.trim();
     if (q.isNotEmpty) _runFilter(q);
   }
@@ -93,7 +93,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         builder: (_, loc, __) {
           final lang = loc.languageCode;
 
-          // ✅ إعادة تحميل النباتات عند تغيير اللغة فقط
+          //  إعادة تحميل النباتات عند تغيير اللغة فقط
           if (lang != _lastLang) {
             _lastLang = lang;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -114,7 +114,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ✅ عنوان الفئة (أبيض قوي + أكبر في الدارك)
+                    // عنوان الفئة (أبيض قوي + أكبر في الدارك)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
@@ -129,7 +129,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
                     const SizedBox(height: 20),
 
-                    // 🔍 البحث
+                    //  البحث
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: TextField(
@@ -324,7 +324,7 @@ class PlantCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ✅ اسم النبات: أبيض + أكبر في الدارك
+                    // اسم النبات: أبيض + أكبر في الدارك
                     Text(
                       name,
                       maxLines: 1,
@@ -337,7 +337,7 @@ class PlantCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
 
-                    // ✅ الوصف: أبيض أهدى في الدارك
+                    //  الوصف: أبيض أهدى في الدارك
                     Text(
                       species,
                       maxLines: 2,

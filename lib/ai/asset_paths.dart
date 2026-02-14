@@ -1,10 +1,10 @@
 class AssetPaths {
   AssetPaths._();
 
-  /// ✅ هذا المسار للـ rootBundle (لازم يبدأ بـ assets/)
+  ///  هذا المسار للـ rootBundle (لازم يبدأ بـ assets/)
   static const String bundleBase = 'assets/model/data_models_plus_lapels';
 
-  /// ✅ هذا المسار لـ Interpreter.fromAsset (بدون assets/)
+  ///  هذا المسار لـ Interpreter.fromAsset (بدون assets/)
   static const String interpreterBase = 'model/data_models_plus_lapels';
 
   // Models (TFLite) — full path for rootBundle
@@ -21,7 +21,7 @@ class AssetPaths {
   static const String pepperLabels = '$bundleBase/pepper_disease_labels.json';
   static const String grapeLabels  = '$bundleBase/grape_disease_labels.json';
 
-  /// ✅ يحوّل من مسار bundle (assets/..) إلى مسار interpreter (بدون assets/)
+  ///  يحوّل من مسار bundle (assets/..) إلى مسار interpreter (بدون assets/)
   static String toInterpreterAsset(String bundlePath) {
     // مثال: assets/model/... -> model/...
     if (bundlePath.startsWith('assets/')) {

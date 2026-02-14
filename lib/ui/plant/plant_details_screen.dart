@@ -109,7 +109,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ✅ اللون فقط (بدون تغيير الحجم)
+                          //  اللون فقط (بدون تغيير الحجم)
                           Text(
                             plant['plant_name'],
                             style: theme.textTheme.headlineSmall?.copyWith(
@@ -219,7 +219,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
 
                           const SizedBox(height: 24),
 
-                          // ✅ اللون فقط
+                          //  اللون فقط
                           Text(
                             _lang == "ar" ? "عن النبات" : "About the Plant",
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -229,7 +229,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // ✅ اللون فقط (بدون تغيير الحجم)
+                          //  اللون فقط (بدون تغيير الحجم)
                           Text(
                             (plant['plant_description'] ?? '') +
                                 (plant['country_notes'] ?? ''),

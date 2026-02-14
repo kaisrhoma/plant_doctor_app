@@ -10,7 +10,7 @@ class TFLiteRuntime {
     // Threads (جرّب 2 أو 4 حسب الجهاز)
     opt.threads = 2;
 
-    // ✅ CPU delegate الأكثر شيوعًا (يساعد في الأداء وأحيانًا يحل مشاكل الإنشاء)
+    //  CPU delegate الأكثر شيوعًا (يساعد في الأداء وأحيانًا يحل مشاكل الإنشاء)
     try {
       opt.addDelegate(XNNPackDelegate());
     } catch (_) {}

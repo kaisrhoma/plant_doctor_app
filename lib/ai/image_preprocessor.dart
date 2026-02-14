@@ -4,7 +4,7 @@ import 'package:image/image.dart' as img;
 class ImagePreprocessor {
   ImagePreprocessor._();
 
-  /// ✅ يرجّع قيمة 0..1 تقريبًا: كلما زادت يعني الصورة فيها أخضر (أوراق/نبات)
+  ///  يرجّع قيمة 0..1 تقريبًا: كلما زادت يعني الصورة فيها أخضر (أوراق/نبات)
   static double greenRatio(Uint8List bytes, {int sampleSize = 128}) {
     final decoded = img.decodeImage(bytes);
     if (decoded == null) return 0.0;
@@ -31,7 +31,7 @@ class ImagePreprocessor {
     return greenish / total;
   }
 
-  /// ✅ ترجع input جاهز لـ tflite:
+  ///  ترجع input جاهز لـ tflite:
   /// - لو inputTypeUint8=true -> Uint8List (0..255)
   /// - لو false -> Float32List (0..1)
   static Object toModelInput(

@@ -19,7 +19,7 @@ class DiseaseResult {
   final String description;
   final String? modelUsed;
 
-  // ✅ الـ Getters الآن تعتمد على الحقول الخام التي لا تتغير أبداً
+  //  الـ Getters الآن تعتمد على الحقول الخام التي لا تتغير أبداً
   String get plantCode => rawPlant.toLowerCase().trim();
   String get diseaseCode => rawDisease;
 

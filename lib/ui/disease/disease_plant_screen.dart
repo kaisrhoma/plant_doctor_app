@@ -274,7 +274,7 @@ class DiseaseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ✅ عنوان المرض: أبيض + أكبر في الدارك
+                    //  عنوان المرض: أبيض + أكبر في الدارك
                     Text(
                       title,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -285,7 +285,7 @@ class DiseaseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
 
-                    // ✅ Subtitle: أبيض خفيف في الدارك
+                    //  Subtitle: أبيض خفيف في الدارك
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(

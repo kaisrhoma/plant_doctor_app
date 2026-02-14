@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  // 🔒 Singleton حقيقي
+  //  Singleton حقيقي
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
 
@@ -20,7 +20,7 @@ class DatabaseHelper {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, "plant_doctorv4.db");
 
-    // ⚠️ أثناء التطوير فقط (للتأكد من التحديث)
+    //  أثناء التطوير فقط (للتأكد من التحديث)
     if (_database != null) {
       await _database!.close();
       _database = null;
