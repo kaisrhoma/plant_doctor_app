@@ -120,7 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 6),
 
-                  // ✅ (اختياري) زر تراخيص Flutter المفتوحة المصدر
+                
                 ],
               );
             },
