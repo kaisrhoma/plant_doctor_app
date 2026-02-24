@@ -1,4 +1,4 @@
-package com.example.plant_doctor_app
+package com.mellontech.plant_doctor
 
 import io.flutter.embedding.android.FlutterActivity
 
